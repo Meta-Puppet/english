@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>Hardware Prototyping Log — MetaPuppet</title>
+<meta content="A photo log of the hardware prototypes, from the first designs on April 2, 2026, to the four-channel motor rig." name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Hardware Prototyping Log — MetaPuppet" property="og:title"/>
+<meta content="A photo log of the hardware prototypes, from the first designs on April 2, 2026, to the four-channel motor rig." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/genesis/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/genesis/mp_logo.png" property="og:image"/>
+<link href="mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent-soft:#3a2530;
+  --accent2:#6fbfc4;
+  --accent2-soft:#193638;
+  --code-bg:#0a0a0b;
+  --code-ink:#e7e6e0;
+  --code-accent:#e78fb3;
+  --code-accent2:#6fbfc4;
+}
+
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6;
+    --paper-raised:#f2f0eb;
+    --ink:#171a1d;
+    --ink-soft:#4b5459;
+    --ink-faint:#8b9296;
+    --rule:#d8d5cd;
+    --rule-strong:#b9b5aa;
+    --accent:#b8500e;
+    --accent-soft:#e8c7a9;
+    --accent2:#14646b;
+    --accent2-soft:#bcdadc;
+    --code-bg:#171a1d;
+    --code-ink:#e7e6e0;
+    --code-accent:#e0954f;
+    --code-accent2:#6fbfc4;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6;
+  --paper-raised:#f2f0eb;
+  --ink:#171a1d;
+  --ink-soft:#4b5459;
+  --ink-faint:#8b9296;
+  --rule:#d8d5cd;
+  --rule-strong:#b9b5aa;
+  --accent:#b8500e;
+  --accent-soft:#e8c7a9;
+  --accent2:#14646b;
+  --accent2-soft:#bcdadc;
+  --code-bg:#171a1d;
+  --code-ink:#e7e6e0;
+  --code-accent:#e0954f;
+  --code-accent2:#6fbfc4;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:760px;
+  margin:0 auto;
+  padding:26px 40px 90px;
+}
+
+.cover{
+  max-width:760px;
+  margin:0 auto;
+  padding:76px 40px 60px;
+  border-bottom:1px solid var(--rule);
+}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:22px;
+}
+.cover-kicker::before{
+  content:"";
+  width:26px;height:1px;
+  background:var(--accent);
+  display:inline-block;
+}
+.cover h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:800;
+  font-size:clamp(30px,5.2vw,46px);
+  line-height:1.4;
+  margin:0 0 20px;
+  text-wrap:balance;
+  letter-spacing:.01em;
+}
+.cover h1 em{
+  font-style:normal;
+  color:var(--accent);
+}
+.cover .sub{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  margin:0 0 34px;
+}
+.cover-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:28px 40px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+  border-top:1px solid var(--rule);
+  padding-top:22px;
+}
+.cover-meta div span{
+  display:block;
+  color:var(--ink-faint);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cover-meta div b{
+  color:var(--ink);
+  font-weight:700;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:13.5px;
+}
+.cover-meta .author{display:inline-flex; align-items:center; gap:8px;}
+.cover-meta .author img{width:22px; height:22px; border-radius:50%; object-fit:cover; display:block; filter:grayscale(1);}
+
+.pipeline{
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 20px 26px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(82px, 1fr));
+  align-items:stretch;
+  gap:0;
+  overflow:visible;
+  border-bottom:1px solid var(--rule);
+  background:var(--paper-raised);
+}
+.pl-step{
+  min-width:0;
+  padding:6px 9px 6px 4px;
+  position:relative;
+  font-family:"IBM Plex Mono",monospace;
+}
+.pl-step .n{
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.pl-step .t{
+  font-size:11px;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  font-weight:700;
+  margin-top:3px;
+  line-height:1.4;
+}
+.pl-step:not(:last-child)::after{
+  content:"→";
+  position:absolute;
+  right:-2px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-faint);
+  font-size:13px;
+}
+
+.chapter{scroll-margin-top:80px;}
+.chapter{
+  border-top:1px solid var(--rule-strong);
+  padding-top:46px;
+  margin-top:10px;
+}
+.chapter:first-of-type{border-top:none;}
+.chapter-head{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:8px;
+}
+.chapter-num{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:13px;
+  color:var(--accent2);
+  letter-spacing:.05em;
+  white-space:nowrap;
+}
+.chapter-stage{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-faint);
+}
+.chapter h2{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:700;
+  font-size:26px;
+  margin:6px 0 30px;
+  text-wrap:balance;
+}
+.lede{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  border-left:3px solid var(--accent);
+  padding-left:18px;
+  margin:0 0 34px;
+}
+.chapter p{margin:0 0 20px;}
+
+.chapter a, .cover a, .footnotes a{
+  color:var(--accent2);
+  text-decoration-color:var(--rule-strong);
+  text-underline-offset:2px;
+}
+.chapter a:visited, .cover a:visited, .footnotes a:visited{color:var(--accent2);}
+.chapter a:hover, .cover a:hover, .footnotes a:hover{color:var(--accent);}
+
+.embed{margin:28px 0;}
+.embed img{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.embed-caption{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); margin-top:8px;}
+.embed.portrait img{max-width:320px; margin:0 auto;}
+.embed.portrait .embed-caption{max-width:320px; margin-left:auto; margin-right:auto; text-align:center;}
+
+.pair{
+  display:flex;
+  gap:16px;
+  margin:28px 0;
+  flex-wrap:wrap;
+}
+.pair figure{
+  flex:1 1 220px;
+  margin:0;
+}
+.pair img{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.pair figcaption{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-faint); margin-top:8px; text-align:center;}
+
+.timestamp{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  color:var(--accent);
+  letter-spacing:.05em;
+  margin-bottom:14px;
+}
+.timestamp::before{content:"";width:16px;height:1px;background:var(--accent);display:inline-block;}
+
+.signature{
+  margin-top:56px;
+  padding-top:22px;
+  border-top:1px solid var(--rule);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  font-size:13px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+}
+
+.pagefoot{
+  max-width:760px;
+  margin:0 auto;
+  padding:30px 40px 60px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  text-align:center;
+  letter-spacing:.05em;
+}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:760px;
+  margin:0 auto;
+  padding:16px 40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.site-header .brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  opacity:.95;
+  transition:opacity .15s ease;
+}
+.site-header .brand:hover{opacity:1;}
+.site-header img{
+  height:40px;
+  width:auto;
+  display:block;
+}
+.site-nav{
+  display:flex;
+  gap:22px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  letter-spacing:.04em;
+}
+.site-nav a{
+  color:var(--ink-faint);
+  text-decoration:none;
+}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); background:var(--paper-raised);}
+  .pl-step .t{font-size:10.5px;}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+
+@media (max-width:600px){
+  .pipeline{grid-template-columns:repeat(2, 1fr); row-gap:6px;}
+  .pl-step:not(:last-child)::after{content:none;}
+  .page,.cover,.pagefoot{padding-left:20px;padding-right:20px;}
+  .pipeline{padding-left:16px;padding-right:16px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table, table tbody{display:block; width:100%;}
+  table tr{display:block; padding:9px 0; border-bottom:1px solid var(--rule);}
+  table tr:first-child:has(th), table tr:has(th){display:none;}
+  table th, table td{display:block; padding:0; border:0; white-space:normal;}
+  table td:first-child{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+  table td:nth-child(2){font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  table td.num{font-size:13.5px; color:var(--accent2); font-weight:700;}
+  table td.label{font-weight:700;}
+  .spec{padding:16px 16px 4px;}
+  .diagram{padding:14px;}
+  pre{padding:14px 14px;}
+  p code, li code, td code{overflow-wrap:anywhere;}
+}
+</style>
+<link href="https://meta-puppet.github.io/english/genesis/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<article>
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../"><img alt="MetaPuppet" src="mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a aria-current="page" href="./">Genesis</a>
+<a href="../pipeline/">Pipeline</a>
+<a href="../pipeline/stability/">Stability</a>
+<a href="../control/">Control</a>
+<a href="../experience/">Experience</a>
+<a href="../credits/">Credits</a>
+</nav>
+</div>
+</div>
+<section class="cover">
+<div class="cover-kicker">Build Log — MetaPuppet</div>
+<h1>Hardware <em>Prototyping</em> Log</h1>
+<p class="sub">From whiteboards on April 2, 2026 to poles, drums, servos, and 4-system mounts. A photographic record of the prototype.</p>
+<div class="cover-meta">
+<div><span>Author</span><b class="author"><img alt="" src="anji_icon.jpeg"/>Anji Fujiwara</b></div>
+<div><span>Start</span><b>2026-04-02</b></div>
+</div>
+</section>
+<div class="pipeline">
+<div class="pl-step"><div class="n">01</div><div class="t">Whiteboard concept</div></div>
+<div class="pl-step"><div class="n">02</div><div class="t">First camera prototype</div></div>
+<div class="pl-step"><div class="n">03</div><div class="t">Pole prototype</div></div>
+<div class="pl-step"><div class="n">04</div><div class="t">Frame assembly</div></div>
+<div class="pl-step"><div class="n">05</div><div class="t">Spool prototype</div></div>
+<div class="pl-step"><div class="n">06</div><div class="t">Servo integration</div></div>
+<div class="pl-step"><div class="n">07</div><div class="t">Mount redesign</div></div>
+<div class="pl-step"><div class="n">08</div><div class="t">Four-channel expansion</div></div>
+</div>
+<div class="page">
+<section class="chapter" id="prologue">
+<div class="chapter-head">
+<span class="chapter-num">Prologue</span>
+<span class="chapter-stage">2026-04-02</span>
+</div>
+<h2>At the Whiteboard</h2>
+<p>The mechanism first appeared as a red marker line rather than a metal appearance. On the whiteboard, next to the notes “perspective of control” and “integrity,” words such as agency, ownership, body-schema, and haptics are lined up, and a diagram connecting them with lines remains. At this point, the idea that would become the core of MetaPuppet, that “the self who moves” and the “self who is moved” coexist within the same body, was still nothing more than a relationship between words circled.</p>
+<div class="embed portrait">
+<img alt="Note written with red marker on whiteboard. Words like agency, subliminal, body-schema, and ownership are circled and connected by lines. At the top is a poster of PDCA (Plan Delay Cancel Apologize) written as a joke." loading="lazy" src="01_idea.jpg"/>
+<div class="embed-caption">April 2, 2026, first whiteboard. The words agency, ownership, and body-schema are already listed.</div>
+</div>
+<p>This record uses only photographs to trace how the graffiti became the mechanism that actually moved a person's arm. I will leave the technical details (communication protocols and PD control details) to other articles, and here I will focus only on how the appearance of the mechanism itself has changed.</p>
+</section>
+<section class="chapter" id="ch01">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 01</span>
+<span class="chapter-stage">Camera, first pass</span>
+</div>
+<h2>Starting with the Camera</h2>
+<p>The first thing I moved my hand at was a camera, not a mechanism that moved my arm. The first prototype of a stereo camera that simply consists of two camera modules for Raspberry Pi placed side by side on a tripod head. There is no dedicated board or case yet, and the ribbon cable is left exposed.</p>
+<div class="embed portrait">
+<img alt="Two Raspberry Pi camera modules are attached to the tripod head. Ribbon cable hanging exposed" loading="lazy" src="06_camera_rig.jpg"/>
+<div class="embed-caption">First stereo camera prototype. A state where only two camera modules are lined up on a tripod head.</div>
+</div>
+<p>After that, I checked on my desk that it was connected directly to the Raspberry Pi.</p>
+<div class="embed portrait">
+<img alt="A bracket with two camera modules attached to the Raspberry Pi body placed on a wooden desk is connected with an orange ribbon cable." loading="lazy" src="07_camera_pi.jpg"/>
+<div class="embed-caption">Directly connected to the Raspberry Pi body</div>
+</div>
+</section>
+<section class="chapter" id="ch02">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 02</span>
+<span class="chapter-stage">Pole, first pass</span>
+</div>
+<h2>Prototyping the Pole</h2>
+<p>In parallel with the camera, prototype production will begin on the mechanism that lifts the arm. It started with a very simple prototype, consisting of two green 3D-printed parts that bridged two poles and a round cap attached to the end.</p>
+<div class="embed portrait">
+<img alt="Two black poles placed on the floor are connected by two green 3D printed parts. Attached to the tip is a gray oval cap that is held in the hand." loading="lazy" src="02_pole.jpg"/>
+<div class="embed-caption">First prototype of the pole-type mechanism. Checking the range of motion by holding the tip cap in hand.</div>
+</div>
+</section>
+<section class="chapter" id="ch03">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 03</span>
+<span class="chapter-stage">Standing the frame</span>
+</div>
+<h2>Assembling the Frame</h2>
+<p>The prototype, which was tested with the pole lying down, eventually stood up from the floor. This photo shows two poles set vertically using a shelf and connected at the top with a crossbar. Two green 3D-printed mounts are attached to the crossbar, with yellow strings hanging there for testing, but no servos are mounted yet.</p>
+<div class="embed">
+<img alt="Inside the room, two black poles are propped up on a shelf, and the tops are connected by a black crossbar. Two green 3D printed mounts are attached to the crossbar, with yellow strings hanging down." loading="lazy" src="03_frame.jpg"/>
+<div class="embed-caption">The state in which the pole was erected for the first time. The crossbar mount doesn't have a servo yet, and I'm checking the range of motion by just passing the string through.</div>
+</div>
+</section>
+<section class="chapter" id="ch04">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 04</span>
+<span class="chapter-stage">Spool, before the servo</span>
+</div>
+<h2>Testing the Spool Before Adding the Servo</h2>
+<p>Before incorporating the servo, we first tested the thread winding mechanism itself using a different set of poles. Inside the green mount, you can see a small shaft with thread wrapped around it. At this point, the motor is not connected yet.</p>
+<div class="embed portrait">
+<img alt="Two black poles are attached to green 3D-printed mounts that house small shafts with thread wrapped around them. A blue ring-shaped part is also attached to the lower pole." loading="lazy" src="04_spool.jpg"/>
+<div class="embed-caption">A prototype with only the thread winding mechanism removed. motor is not connected yet</div>
+</div>
+</section>
+<section class="chapter" id="ch05">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 05</span>
+<span class="chapter-stage">The servo and the drum</span>
+</div>
+<h2>Integrating the Servo and Drum</h2>
+<p>In parallel with the verification of the thread winding, the actual servos and drums that will be used are being matched. The servo is Feetech's STS3215 (7.4V, gear ratio 1:191). This photo shows a blue 3D-printed drum temporarily assembled on the output shaft, with spiral grooves cut into the side of the drum to align the cables, and holes lined up on the end for wiring and shafts to pass through.</p>
+<div class="embed portrait">
+<img alt="A blue 3D printed drum is attached to a black Feetech STS3215 servo on the desk. A spiral groove is carved on the side of the drum, and multiple holes are lined up on the end surface." loading="lazy" src="05_drum.jpg"/>
+<div class="embed-caption">The first blue 3D printed drum I assembled with the STS3215 servo. Align cables with side spiral grooves</div>
+</div>
+</section>
+<section class="chapter" id="ch06">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 06</span>
+<span class="chapter-stage">Updated mount</span>
+</div>
+<h2>Redesigning the Mount</h2>
+<p>Once the servo and drum were assembled, the mount on the frame side was also updated. The Raspberry Pi now has a cooling case with a heatsink and fan attached to a blue mount. The green mount on the crossbar side has a hole inside to pass the yellow cable through.</p>
+<div class="embed">
+<img alt="Raspberry Pi fixed on a black pole with a blue mount. It has a black cooling case with a heatsink and fan. In the back, a green motor mount is attached to the crossbar and a yellow cable is passed through it." loading="lazy" src="08_updated_mount.jpg"/>
+<div class="embed-caption">Raspberry Pi with cooling case and updated motor mount</div>
+</div>
+</section>
+<section class="chapter" id="ch07">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 07</span>
+<span class="chapter-stage">Old vs. new mount</span>
+</div>
+<h2>Comparing the Green and Gray Mounts</h2>
+<p>The first green mount (left) had a place for the servo, but the drum was also small. The remade gray mount (right) has a shape that allows the servo to fit securely, and a structure that supports the shaft on the opposite side with a ball bearing has been added. Comparing the two drums in the foreground, the white drum on the right is slightly larger.</p>
+<div class="embed">
+<img alt="Two 3D printed mounts lined up on a desk. The green mount on the left is hollow inside and has no bearing. A servo is mounted on the gray mount on the right, and a ball bearing is attached to the shaft on the opposite side. In the foreground is a small blue drum and a slightly larger white drum." loading="lazy" src="09_mount_compare.jpg"/>
+<div class="embed-caption">Left: First green mount (small drum). Right: Rebuilt gray mount (servo mounting, ball bearings, larger drum)</div>
+</div>
+</section>
+<section class="chapter" id="ch08">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 08</span>
+<span class="chapter-stage">Four channels</span>
+</div>
+<h2>Expanding from Two Channels to Four</h2>
+<p>All the prototypes so far were based on two systems of servos (ID 5 and 6). The current mechanism has been expanded to four systems: A, B, C, and D. Each of the four poles has an independent mount and can be distinguished by color-coded letters.</p>
+<div class="embed">
+<img alt="Four black poles are lined up, each with a black mount attached. The letters A, B, C, and D are written on the mount in light blue, white, green, and light blue." loading="lazy" src="10_four_channel.jpg"/>
+<div class="embed-caption">Current 4 system configuration. A, B, C, and D mounts are lined up.</div>
+</div>
+<p>Details of future communication protocols and PD control are summarized in <a href="../control/">Hardware and control implementation record</a>.</p>
+<div class="signature">
+<div>MetaPuppet — Build Log</div>
+<div>Anji Fujiwara</div>
+</div>
+</section>
+</div>
+<div class="pagefoot">MetaPuppet</div>
+</article>
+</body>
+</html>

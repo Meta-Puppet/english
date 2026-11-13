@@ -1,29 +1,22 @@
-<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "yd3zcmib9p");
-</script>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#020202">
-<title>MetaPuppet</title>
-<meta name="description" content="自分自身を、自分自身で操作する。カメラで撮影した自分の姿をリアルタイムに切り出し、VR内で自分自身を操り人形のように操作する体験作品 MetaPuppet の公式サイト。">
-<meta property="og:type" content="website">
-<meta property="og:title" content="MetaPuppet">
-<meta property="og:description" content="自分自身を、自分自身で操作する。カメラで撮影した自分の姿をリアルタイムに切り出し、VR内で自分自身を操り人形のように操作する体験作品。">
-<meta property="og:url" content="https://meta-puppet.github.io/">
-<meta property="og:image" content="https://meta-puppet.github.io/assets/mp_logo.png">
-<link rel="icon" type="image/png" href="assets/mp_logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!DOCTYPE html>
 
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>MetaPuppet</title>
+<meta content="MetaPuppet is a VR experience that captures and isolates a live camera image of your body so you can control yourself like a marionette." name="description"/>
+<meta content="website" property="og:type"/>
+<meta content="MetaPuppet" property="og:title"/>
+<meta content="MetaPuppet is a VR experience that captures and isolates a live camera image of your body so you can control yourself like a marionette." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/assets/mp_logo.png" property="og:image"/>
+<link href="assets/mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <style>
 :root{
   --bg:#020202;
@@ -41,7 +34,7 @@ html,body{margin:0;padding:0;}
 body{
   background:var(--bg);
   color:var(--ink);
-  font-family:"Hanken Grotesk","Hiragino Sans",system-ui,sans-serif;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
   min-height:100vh;
   overflow-x:hidden;
 }
@@ -250,105 +243,81 @@ a.row:focus-visible{ outline:2px solid var(--accent); outline-offset:4px; }
   a.row, .row-label, .row-arrow, .row-num{transition:none;}
 }
 </style>
-</head>
+<link href="https://meta-puppet.github.io/english/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
 <body>
-
 <canvas id="stage"></canvas>
-
 <div class="wrap">
-  <div>
-    <div class="eyebrow"><span class="num">MP</span><span>Meta Puppet</span></div>
-
-    <div class="hero">
-      <h1>自分自身を、<em>自分自身で</em>操作する。</h1>
-      <p>カメラで撮影した自分の姿をリアルタイムに切り出し、VRの中で自分自身を操り人形のように操作する体験作品。</p>
-    </div>
-  </div>
-
-  <div class="panels">
-    <nav class="index">
-      <div class="index-head"><span>Reports</span><span>2026—</span></div>
-      <a class="row" href="https://meta-puppet.github.io/genesis/">
-        <span class="row-num">01</span>
-        <span class="row-text">
-          <span class="row-label">ハードウェア試作の記録</span>
-          <span class="row-sub">build log (origin story) — Anji Fujiwara</span>
-        </span>
-        <span class="row-arrow">→</span>
-      </a>
-      <a class="row" href="https://meta-puppet.github.io/pipeline/">
-        <span class="row-num">02</span>
-        <span class="row-text">
-          <span class="row-label">通信インフラの実装で頑張ったこと</span>
-          <span class="row-sub">software implementation notes — 清水</span>
-        </span>
-        <span class="row-arrow">→</span>
-      </a>
-      <a class="row" href="https://meta-puppet.github.io/control/">
-        <span class="row-num">03</span>
-        <span class="row-text">
-          <span class="row-label">指の動きが、もう一方の腕を動かすまで</span>
-          <span class="row-sub">hardware &amp; control notes — Anji Fujiwara</span>
-        </span>
-        <span class="row-arrow">→</span>
-      </a>
-      <a class="row" href="https://meta-puppet.github.io/experience/">
-        <span class="row-num">04</span>
-        <span class="row-text">
-          <span class="row-label">世界観とゲームの実装</span>
-          <span class="row-sub">experience implementation notes — 清水</span>
-        </span>
-        <span class="row-arrow">→</span>
-      </a>
-      <a class="row" href="https://meta-puppet.github.io/pipeline/stability/">
-        <span class="row-num">05</span>
-        <span class="row-text">
-          <span class="row-label">GPUを落とさないための実装</span>
-          <span class="row-sub">pipeline appendix — 清水</span>
-        </span>
-        <span class="row-arrow">→</span>
-      </a>
-      <div class="index-foot"></div>
-    </nav>
-
-    <div class="team">
-      <div class="index-head"><span>Team</span></div>
-      <div class="team-row">
-        <img class="team-avatar" src="assets/anji.jpg" alt="Anji Fujiwaraのアイコン">
-        <span class="team-text">
-          <a class="team-name" href="https://x.com/afcfd_">Anji Fujiwara</a>
-          <span class="team-bio">筑波大学情報学群情報メディア創成学類1年。VR・触覚・知覚・身体領域の研究に興味がある。</span>
-        </span>
-      </div>
-      <div class="team-row">
-        <img class="team-avatar" src="assets/kosuke.jpg" alt="Kosuke Shimizuのアイコン">
-        <span class="team-text">
-          <a class="team-name" href="https://x.com/ksk432smz">Kosuke Shimizu</a>
-          <span class="team-bio">筑波大学情報学群情報メディア創成学類3年。</span>
-        </span>
-      </div>
-      <div class="team-foot"></div>
-
-      <div class="index-head thanks"><span>Special Thanks</span></div>
-      <div class="team-row">
-        <span class="team-text">
-          <a class="team-name" href="https://beyondrealitylab.org/">松本啓吾 先生 — Beyond Reality Lab</a>
-          <span class="team-bio">制作を通じて多くの助言とご支援をいただきました。ありがとうございました。</span>
-        </span>
-      </div>
-      <div class="team-foot"></div>
-    </div>
-  </div>
-
-  <div class="foot">
-    <span>MetaPuppet</span>
-    <span class="foot-links">
-      <a href="https://meta-puppet.github.io/credits/">Credits</a>
-    </span>
-  </div>
+<div>
+<div class="eyebrow"><span class="num">MP</span><span>Meta Puppet</span></div>
+<div class="hero">
+<h1>Control <em>your own</em> body like a marionette.</h1>
+<p>A camera captures your body in real time. In VR, you see that live image and move your own body as if it were a marionette.</p>
 </div>
-
-<script src="vendor/three.min.js" defer></script>
-<script src="app.js" defer></script>
+</div>
+<div class="panels">
+<nav aria-label="Project reports" class="index">
+<div class="index-head"><span>Reports</span><span>2026—</span></div>
+<a class="row" href="genesis/"><span class="row-num">01</span>
+<span class="row-text">
+<span class="row-label">Hardware Prototyping Log</span>
+<span class="row-sub">build log (origin story) — Anji Fujiwara</span>
+</span>
+<span class="row-arrow">→</span></a>
+<a class="row" href="pipeline/"><span class="row-num">02</span>
+<span class="row-text">
+<span class="row-label">Building the Video Pipeline</span>
+<span class="row-sub">software implementation notes — Kosuke Shimizu</span>
+</span>
+<span class="row-arrow">→</span></a>
+<a class="row" href="control/"><span class="row-num">03</span>
+<span class="row-text">
+<span class="row-label">How a Pinch Moves the Other Arm</span>
+<span class="row-sub">hardware &amp; control notes — Anji Fujiwara</span>
+</span>
+<span class="row-arrow">→</span></a>
+<a class="row" href="experience/"><span class="row-num">04</span>
+<span class="row-text">
+<span class="row-label">Building the World and the Game</span>
+<span class="row-sub">experience implementation notes — Kosuke Shimizu</span>
+</span>
+<span class="row-arrow">→</span></a>
+<a class="row" href="pipeline/stability/"><span class="row-num">05</span>
+<span class="row-text">
+<span class="row-label">Keeping the GPU from Crashing</span>
+<span class="row-sub">pipeline appendix — Kosuke Shimizu</span>
+</span>
+<span class="row-arrow">→</span></a>
+<div class="index-foot"></div>
+</nav>
+<div class="team">
+<div class="index-head"><span>Team</span></div>
+<div class="team-row">
+<img alt="Anji Fujiwara" class="team-avatar" src="assets/anji.jpg"/>
+<span class="team-text"><a class="team-name" href="https://x.com/afcfd_">Anji Fujiwara</a>
+<span class="team-bio">First-year student in the College of Media Arts, Science and Technology, School of Informatics, University of Tsukuba. Research interests include VR, haptics, perception, and embodiment.</span></span>
+</div>
+<div class="team-row">
+<img alt="Kosuke Shimizu" class="team-avatar" src="assets/kosuke.jpg"/>
+<span class="team-text"><a class="team-name" href="https://x.com/ksk432smz">Kosuke Shimizu</a>
+<span class="team-bio">Third-year student in the College of Media Arts, Science and Technology, School of Informatics, University of Tsukuba.</span></span>
+</div>
+<div class="team-foot"></div>
+<div class="index-head thanks"><span>Special Thanks</span></div>
+<div class="team-row"><span class="team-text">
+<a class="team-name" href="https://beyondrealitylab.org/">Prof. Keigo Matsumoto — Beyond Reality Lab</a>
+<span class="team-bio">Thank you for your advice and support throughout the project.</span>
+</span></div>
+<div class="team-foot"></div>
+</div>
+</div>
+<div class="foot">
+<span>MetaPuppet</span>
+<span class="foot-links"><a href="research/">Research</a>
+<a href="credits/">Credits</a>
+</span>
+</div>
+</div>
+<script defer="" src="vendor/three.min.js"></script>
+<script defer="" src="app.js"></script>
 </body>
 </html>

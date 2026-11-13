@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>Building the World and the Game — MetaPuppet</title>
+<meta content="How the MetaPuppet experience combines live video, person masks, and Quest hand tracking in Unity." name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Building the World and the Game — MetaPuppet" property="og:title"/>
+<meta content="How the MetaPuppet experience combines live video, person masks, and Quest hand tracking in Unity." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/experience/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/experience/mp_logo.png" property="og:image"/>
+<link href="mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+
+:root{
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent-soft:#3a2530;
+  --accent2:#6fbfc4;
+  --accent2-soft:#193638;
+  --code-bg:#0a0a0b;
+  --code-ink:#e7e6e0;
+  --code-accent:#e78fb3;
+  --code-accent2:#6fbfc4;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6; --paper-raised:#f2f0eb; --ink:#171a1d; --ink-soft:#4b5459;
+    --ink-faint:#8b9296; --rule:#d8d5cd; --rule-strong:#b9b5aa;
+    --accent:#b8500e; --accent-soft:#e8c7a9; --accent2:#14646b; --accent2-soft:#bcdadc;
+    --code-bg:#171a1d; --code-ink:#e7e6e0; --code-accent:#e0954f; --code-accent2:#6fbfc4;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6; --paper-raised:#f2f0eb; --ink:#171a1d; --ink-soft:#4b5459;
+  --ink-faint:#8b9296; --rule:#d8d5cd; --rule-strong:#b9b5aa;
+  --accent:#b8500e; --accent-soft:#e8c7a9; --accent2:#14646b; --accent2-soft:#bcdadc;
+  --code-bg:#171a1d; --code-ink:#e7e6e0; --code-accent:#e0954f; --code-accent2:#6fbfc4;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+}
+
+.site-header{
+  position:sticky; top:0; z-index:50; width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:760px; margin:0 auto; padding:16px 40px;
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+}
+.site-header .brand{display:inline-flex; align-items:center; line-height:0; opacity:.95; transition:opacity .15s ease;}
+.site-header .brand:hover{opacity:1;}
+.site-header img{height:40px; width:auto; display:block;}
+.site-nav{display:flex; gap:22px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.04em;}
+.site-nav a{color:var(--ink-faint); text-decoration:none;}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+.page{max-width:760px; margin:0 auto; padding:64px 40px 90px;}
+.toc{max-width:760px; margin:0 auto; padding:26px 40px 8px; border-bottom:1px solid var(--rule); background:var(--paper-raised);}
+.toc-head{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;}
+.toc a{display:grid; grid-template-columns:5.2em 1fr; gap:14px; align-items:baseline; padding:8px 0; border-top:1px solid var(--rule); color:var(--ink); text-decoration:none; font-size:14px; font-weight:600;}
+.toc a:first-of-type{border-top:none;}
+.toc a:hover span:last-child{color:var(--accent);}
+.toc-num{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--accent2); letter-spacing:.05em;}
+.chapter{scroll-margin-top:80px;}
+
+.cover{max-width:760px; margin:0 auto; padding:56px 40px 60px; border-bottom:1px solid var(--rule);}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.18em; color:var(--accent);
+  text-transform:uppercase; display:flex; align-items:center; gap:10px; margin-bottom:22px;
+}
+.cover-kicker::before{content:""; width:26px; height:1px; background:var(--accent); display:inline-block;}
+.cover h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif; font-weight:800;
+  font-size:clamp(32px,5.6vw,48px); line-height:1.4; margin:0 0 20px; text-wrap:balance; letter-spacing:.01em;
+}
+.cover h1 em{font-style:normal; color:var(--accent);}
+.cover .sub{font-size:15.5px; color:var(--ink-soft); margin:0 0 34px;}
+.cover-meta{
+  display:flex; flex-wrap:wrap; gap:28px 40px; font-family:"IBM Plex Mono",monospace; font-size:12px;
+  color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:22px;
+}
+.cover-meta div span{display:block; color:var(--ink-faint); font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:4px;}
+.cover-meta div b{color:var(--ink); font-weight:700; font-family:"Hanken Grotesk",system-ui,sans-serif; font-size:13.5px;}
+.cover-meta .author{display:inline-flex; align-items:center; gap:8px;}
+.cover-meta .author img{width:22px; height:22px; border-radius:50%; object-fit:cover; display:block; filter:grayscale(1);}
+
+.chapter{border-top:1px solid var(--rule-strong); padding-top:46px; margin-top:10px;}
+.chapter:first-of-type{border-top:none;}
+.chapter-head{display:flex; align-items:baseline; gap:16px; margin-bottom:8px;}
+.chapter-num{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--accent2); letter-spacing:.05em; white-space:nowrap;}
+.chapter-stage{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);}
+.chapter h2{font-family:"Hanken Grotesk",system-ui,sans-serif; font-weight:700; font-size:26px; margin:6px 0 30px; text-wrap:balance;}
+.chapter h3{font-family:"Hanken Grotesk",system-ui,sans-serif; font-size:18.5px; font-weight:700; margin:38px 0 14px;}
+.chapter p{margin:0 0 20px;}
+
+.chapter a, .cover a, .footnotes a{color:var(--accent2); text-decoration-color:var(--rule-strong); text-underline-offset:2px;}
+.chapter a:visited, .cover a:visited, .footnotes a:visited{color:var(--accent2);}
+.chapter a:hover, .cover a:hover, .footnotes a:hover{color:var(--accent);}
+
+.spec{
+  background:var(--paper-raised); border:1px solid var(--rule); border-left:3px solid var(--accent2);
+  border-radius:2px; padding:20px 22px 6px; margin:28px 0; page-break-inside:avoid; break-inside:avoid;
+}
+.spec-title{font-family:"Hanken Grotesk",system-ui,sans-serif; font-size:12.5px; font-weight:700; letter-spacing:.04em; color:var(--accent2); margin-bottom:10px;}
+
+table.data{width:100%; border-collapse:collapse; margin:24px 0; font-size:13.5px;}
+table.data th{
+  text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.04em; font-weight:500;
+  color:var(--ink-faint); text-transform:uppercase; border-bottom:1px solid var(--rule-strong); padding:8px 14px 8px 0;
+}
+table.data td{border-bottom:1px solid var(--rule); padding:10px 14px 10px 0; vertical-align:top;}
+table.data td.num{font-family:"IBM Plex Mono",monospace; color:var(--accent2); font-weight:700;}
+table.data{table-layout:fixed;}
+table.data th:first-child, table.data td:first-child{width:38%;}
+table.data td{overflow-wrap:anywhere;}
+table.data td.label{font-weight:700;}
+
+.diagram{margin:30px 0; border:1px solid var(--rule); background:var(--paper-raised); padding:22px; page-break-inside:avoid;}
+.diagram-title{font-family:"Hanken Grotesk",system-ui,sans-serif; font-size:12.5px; font-weight:700; color:var(--ink-faint); margin-bottom:14px;}
+.dg-row{display:flex; align-items:center; gap:0; flex-wrap:wrap;}
+.dg-box{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; border:1px solid var(--rule-strong); background:var(--paper);
+  padding:10px 13px; border-radius:2px; text-align:center; line-height:1.5;
+}
+.dg-box b{display:block; font-size:12.5px; color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-box small{color:var(--ink-faint); font-size:10px;}
+.dg-box.hot{border-color:var(--accent);} .dg-box.hot b{color:var(--accent);}
+.dg-box.gpu{border-color:var(--accent2);} .dg-box.gpu b{color:var(--accent2);}
+.dg-arrow{color:var(--ink-faint); padding:0 8px; font-size:14px;}
+
+code{
+  font-family:"IBM Plex Mono",monospace; background:var(--paper-raised); padding:1px 5px; border-radius:2px;
+  font-size:.9em; border:1px solid var(--rule);
+}
+.code-wrap{margin:24px 0; page-break-inside:avoid; break-inside:avoid;}
+.code-label{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-faint); margin-bottom:6px; letter-spacing:.05em;}
+pre{
+  background:var(--code-bg); color:var(--code-ink); padding:18px 20px; border-radius:3px; overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.7; margin:0;
+}
+pre .k{color:var(--code-accent2);} pre .c{color:var(--code-accent);}
+
+.footnotes{margin-top:34px; padding-top:16px; border-top:1px solid var(--rule);}
+.footnotes ol{margin:0; padding-left:1.3em; font-size:12.5px; color:var(--ink-soft); line-height:1.7;}
+.footnotes li{margin-bottom:8px;}
+sup.fnref{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--accent2); margin-left:1px;}
+sup.fnref a{color:inherit; text-decoration:none;}
+
+.notice{background:var(--paper-raised); border-left:3px solid var(--accent); padding:14px 18px; margin:24px 0; font-size:14px; color:var(--ink-soft);}
+
+.embed{margin:28px 0;}
+.embed iframe{width:100%; aspect-ratio:16/9; border:1px solid var(--rule-strong); border-radius:2px; display:block; background:#000;}
+.embed img{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.embed-caption{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); margin-top:8px;}
+.embed audio{width:100%; display:block;}
+.embed .audio-set{display:grid; gap:10px;}
+.embed .audio-set span{display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-soft); margin-bottom:4px;}
+.embed .seq{display:flex; gap:8px;}
+.embed .seq img{flex:1 1 0; min-width:0; width:auto;}
+@media (max-width:600px){ .embed .seq{gap:4px;} }
+
+.signature{
+  margin-top:56px; padding-top:22px; border-top:1px solid var(--rule); display:flex;
+  justify-content:space-between; align-items:flex-end; font-size:13px; color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+}
+.pagefoot{
+  max-width:760px; margin:0 auto; padding:30px 40px 60px; color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace; font-size:11px; text-align:center; letter-spacing:.05em;
+}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{overflow:visible; flex-wrap:wrap; background:var(--paper-raised);}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+@media (max-width:600px){
+  .page,.cover,.pagefoot,.toc{padding-left:20px; padding-right:20px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table, table tbody{display:block; width:100%;}
+  table tr{display:block; padding:9px 0; border-bottom:1px solid var(--rule);}
+  table tr:first-child:has(th), table tr:has(th){display:none;}
+  table th, table td{display:block; padding:0; border:0; white-space:normal;}
+  table td:first-child{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+  table td:nth-child(2){font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  table td.num{font-size:13.5px; color:var(--accent2); font-weight:700;}
+  table td.label{font-weight:700;}
+  .spec{padding:16px 16px 4px;}
+  .diagram{padding:14px;}
+  pre{padding:14px 14px;}
+  p code, li code, td code{overflow-wrap:anywhere;}
+}
+</style>
+<link href="https://meta-puppet.github.io/english/experience/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../"><img alt="MetaPuppet" src="mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a href="../genesis/">Genesis</a>
+<a href="../pipeline/">Pipeline</a>
+<a href="../pipeline/stability/">Stability</a>
+<a href="../control/">Control</a>
+<a aria-current="page" href="./">Experience</a>
+<a href="../credits/">Credits</a>
+</nav>
+</div>
+</div>
+<article>
+<section class="cover">
+<div class="cover-kicker">Software Notes — MetaPuppet</div>
+<h1>Building the World and the Game</h1>
+<p class="sub">A record of how Unity assembles the experience of actually controlling participants from the received video/mask and Quest's hand tracking.</p>
+<div class="cover-meta">
+<div><span>Author</span><b class="author"><img alt="" src="kosuke.jpg"/>Shimizu (in charge of software implementation)</b></div>
+</div>
+</section>
+<nav aria-label="table of contents" class="toc">
+<div class="toc-head">Contents</div>
+<a href="#prologue"><span class="toc-num">Prologue</span><span>Preface</span></a>
+<a href="#ch01"><span class="toc-num">01</span><span>Synchronize the progression of the experience and the music</span></a>
+<a href="#ch02"><span class="toc-num">02</span><span>Rhythm game of tapping at hand height</span></a>
+<a href="#ch03"><span class="toc-num">03</span><span>Make the mask itself a hit detection</span></a>
+<a href="#ch04"><span class="toc-num">04</span><span>Adjust the posture derived from the video based on Quest's hands</span></a>
+<a href="#ch05"><span class="toc-num">05</span><span>Send the judgment result to the wire that actually pulls the arm</span></a>
+<a href="#ch06"><span class="toc-num">06</span><span>Decayed stage and shader</span></a>
+<a href="#ch07"><span class="toc-num">07</span><span>XR side settings and load countermeasures at the venue</span></a>
+<a href="#epilogue"><span class="toc-num">Epilogue</span><span>Afterword</span></a>
+</nav>
+<div class="page">
+<section class="chapter" id="prologue">
+<div class="chapter-head">
+<span class="chapter-num">Prologue</span>
+<span class="chapter-stage">Scope Note</span>
+</div>
+<h2>Preface</h2>
+<p>The Unity side of MetaPuppet has one output that regular VR games don't have. The result of the in-game decision physically pulls the participant's arm through a wire wrapped around a motor. It doesn't end on the screen.</p>
+<p>In that case, we are faced with the same question everywhere in our design. Video, mask, pose estimation, hand tracking, music. Of all the information received every frame, which one do you believe and move your body? The estimation results received from the PC side contain a large amount of information, but may be delayed or corrupted. Quest's hand tracking has fewer joints, but it directly measures the body in front of you. On the Unity side, we decided that the judgment and wires would only look at Quest's actual measurements and the music clock, and the images and pose estimation would only be used for display. This division appears repeatedly in each chapter.</p>
+</section>
+<section class="chapter" id="ch01">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 01</span>
+<span class="chapter-stage">Stage Direction</span>
+</div>
+<h2>Synchronizing the Experience with the Music</h2>
+<p>The experience passes through three stages sequentially from the participant's perspective. The first stage is from a first-person perspective, where you move your hands to the rhythm while looking only at the target floating in the position of your hand. Next, the game switches to a third-person perspective, where you can see a 3D doll that is your alter ego moving its hands to the same rhythm. Finally, the stage where the doll is replaced with a live-action video of the person (a clipped video using RVM masking on the PC side). The logic of judgment and target placement are the same for all three, only the way they are presented differs.</p>
+<p>This is a progression in which the meaning of the operations once taught is rewritten later. This structure has precedent in games. <a href="https://ja.wikipedia.org/wiki/%E3%83%90%E3%82%A4%E3%82%AA%E3%82%B7%E3%83%A7%E3%83%83%E3%82%AF">BioShock</a>'s (2007)'s “Would you kindly?” forces you to use the FPS convention of following through with a goal for hours, then reinterprets that obedient play as a narrative maneuver. <a href="https://ja.wikipedia.org/wiki/The_Stanley_Parable">The Stanley Parable</a> (2013) is a game that uses the very act of being given instructions from the game, including following and disobeying the narrator's instructions, and when considering the state of the participants in this work who continue to move their bodies in accordance with the instructions, it was the closest thing to me. In this work, participants only remember the operation of “raising and lowering their hands in time with the sound,” but as the objects of the same operation progress to targets, puppets, and live images of themselves, they begin to understand that what they were doing was operating the puppet, and ultimately, their own body. The way you view your alter ego from the outside in the third person is similar to the design of OneShot and Undertale, where the player and the player character were treated as separate entities.</p>
+<div class="embed">
+<iframe allowfullscreen="" loading="lazy" src="https://www.youtube.com/embed/fBtX0S2J32Y" title="The Stanley Parable Launch Trailer"></iframe>
+<div class="embed-caption">The Stanley Parable — Launch Trailer (Source: <a href="https://www.youtube.com/watch?v=fBtX0S2J32Y">YouTube, stanleyparable</a>)</div>
+</div>
+<p>These three-step switching timings are calculated based on the audio playback clock (<code>AudioSettings.dspTime</code>) <sup class="fnref" id="fnref-dsp"><a href="#fn-dsp">[1]</a></sup>, not Unity's normal frame time (<code>Time.time</code>). The frame time can easily shift due to the weight of the drawing, but the music playback clock is synchronized with the audio output of the hardware, so if this is not used as a reference, the target of the judgment and the actual sound will be out of sync. The length is 32 beats for the first person stage, 32 beats for the third person puppet stage with a blackout (default 5 seconds), and 96 beats (96 seconds at 60BPM) for the live-action stage with a slightly longer blackout (default 12 seconds).</p>
+<p>If the live-action video/mask stream received from the PC side is interrupted during the live-action stage, it will automatically return to the third-person doll display without stopping the judgment. The priority is that even if the visual performance is broken, the judgment of the hand that the participant is currently moving will not be stopped.</p>
+<h3>Cut out the song to match the beat of the game</h3>
+<p>In the current implementation, the music played at the venue is set up as a single score divided into six sections (Introduction, First Person, Puppet, Live Action, Results, and End), and each time the experience progresses, it is passed to the next section as the video changes. The songs themselves are three songs created using Suno AI, and were created by repeatedly generating and selecting them while referring to Kangding Ray's songs and the sounds of “NieR:Automata”. One quiet song for the introduction, separate parts of the same song from the first person to the conclusion, and another short song for the ending. Since the game is running at 60 BPM, the time of the main song was expanded or contracted from the original 132 BPM to 120 BPM without changing the pitch, so that one beat in the game overlaps exactly once with two beats in the music. Each segment begins at the beginning of a measure, and the end is folded into a loop that seamlessly returns to the beginning. The tone color (EQ) for each section and the changes in the bass and reverberation that increase towards the end are not calculated each time in Unity, but are burned into the audio file in advance during this extraction process.</p>
+<p>The way the sections are connected is not a simple volume crossfade, but mimics the EQ swap used in DJ mixing. First, make the song you're leaving a narrow, distant sound, and leave a short pause. Next, the leaving side takes out the low notes first, and the coming side comes in with only the high notes and spreads downward. This is to avoid creating a moment when the bass sounds double. Slightly submerge both at the intersection. Only the final section was intentionally left unresolved, and disappeared in a thin, distant, and slightly unstable manner.</p>
+<h3>Midside chorus and room ringing</h3>
+<p>Of the processing that was baked in during the cutting process, the one that took the most effort was handling the chorus in the first-person section. The original song has a sustained chorus-like frequency range (700-6000Hz), and if played as is, it would ride directly above the music and make too much of an impression. Therefore, we extract only this band, and on the original sound side, lower that band by 7 dB in the center to make room. From the extracted band, three duplicates (-9, +7, +14 cents) with pitches shifted by a few cents each are delayed by a few milliseconds and placed alternately on the left and right to create a "spread" layer, as well as a thin shimmer an octave higher, and are thrown into a long reverberation that stretches from 4 seconds to 8 seconds as the section progresses. This reverberation is broken down into Mid (center) and Side (left/right difference), and 100% is returned to Side and only 30% is returned to Mid. Ambient sounds are reduced by 2.5dB. This way, the chorus will sound around your head instead of overlapping the music.</p>
+<div class="embed">
+<div class="audio-set">
+<div><span>before — interval EQ only</span><audio controls="" preload="metadata" src="ms_before.mp3"></audio></div>
+<div><span>after — Chorus band to side reverberation</span><audio controls="" preload="metadata" src="ms_after.mp3"></audio></div>
+</div>
+<div class="embed-caption">The same 14 seconds in the first person section. Using the extraction tool, I exported only the chorus without adding it, and exported it with it. When listening with headphones, the chorus of the latter is off center and sounds outside the left and right sides.</div>
+</div>
+<p>The reverberation is divided into two layers. The first layer is the reverberation burned in during the cutting process, and in the sections between the doll and the live action, changes in the amount of low frequency and reverberation (from 5% feed rate to 25-40%) and the length of the reverberation are written into the audio file as the process progresses. The second layer is the reverberation applied when Unity is executed, and this determines the "room" for each stage. The doll stage is a small room, the reverberation is short (1.4 seconds), the high frequencies are slightly lowered, and the doll is placed a little further away. After the actual image of the person appears, the room grows into a hall as the stages progress, the reverberation increases from 1.5 seconds to 4.5 seconds, and the feed rate increases continuously from -25 dB to -9 dB. The sound of a hit also sounds in the same room. When handing over sections, the dry sound is lowered by 5 dB while pushing the departing song deeper into the reverberation, and when handing over to the live-action stage, the coming song is played first in reverberation only before the main unit is inserted. This is to give a hint that something is coming.</p>
+<div class="embed">
+<div class="audio-set">
+<div><span>dry — no reverberation</span><audio controls="" preload="metadata" src="reverb_dry.mp3"></audio></div>
+<div><span>room — doll stage (reverberation 1.4 seconds)</span><audio controls="" preload="metadata" src="reverb_room.mp3"></audio></div>
+<div><span>hall — Final stage of live-action stage (reverberation 4.5 seconds)</span><audio controls="" preload="metadata" src="reverb_hall.mp3"></audio></div>
+</div>
+<div class="embed-caption">The setting values ​​for each stage of the room are applied to the opening 12 seconds of the puppet section using the reverberation on the cutting tool side. In the actual machine, this change occurs continuously with Unity's reverberation filter.</div>
+</div>
+<h3>Transfer the sound from your head to the stage</h3>
+<p>The location of the sound is also linked to the stage. During first person, the music is in your head on a regular stereo. When entering the puppet stage, the music and hit sounds are redirected to the direction of the stage where the puppet is standing, and stays in that direction even when the puppet's head is turned. The distance and room sounds are also changed for each scene, with the puppet stage being a little far away and a small room, the live-action stage being closer, and the hall expanding as the stage progresses. In the live-action stage, the hit sound also comes from the position of the person's body on screen.</p>
+<p>This localization is created using only signal processing on the audio thread, without using any spatial sound plug-ins. When you combine these four factors: the difference in volume between the left and right sides, the time difference in reaching both ears, the muffledness in the far ear, and the dullness when the sound goes to the back of your head, you can hear the sound circling around your head even with headphones. However, rotation was treated as a gesture rather than a state, and its use was limited to three moments. It rotates once when the puppet is handed over, slowly rotates once when a live image of the doll appears, and when the hologram collapses at the end, the rotation speeds up depending on the extent of the collapse. The rest of the time it remains normal stereo.</p>
+<h3>handling anxiety</h3>
+<p>Even the “off-kilter” music is synchronized with what the participants are watching. It is now possible to insert two types of deterioration into music. One is a slow fluctuation in pitch, similar to the uneven rotation of a tape, which jumps once and then decays at the moment when the control transitions from blackout to the doll, gradually increases while the doll is taking pictures of itself, reaches its peak when a live picture of the person appears, and calms down while playing with the live picture. The other is lo-fi signal decay, which lowers the sample rate, introduces a stutter that cannot keep up with new values, and reduces the quantization level. This is for the hologram collapse at the end, and it rises at the same rate as the video collapse in the remaining 10 seconds of the live-action stage, and although it is pulled back when the result is displayed, it does not return to a completely clean sound. The position of the sound source itself is made to tremble depending on the degree of collapse.</p>
+<div class="embed">
+<audio controls="" preload="metadata" src="score_full_preview.mp3"></audio>
+<div class="embed-caption">Listen to the finished sound (approximately 4 minutes). The actual length is 45 seconds for the introduction, 32 seconds for the first person, 37 seconds for the puppet, 108 seconds for the live action, 6 seconds for the result, and 12 seconds for the end, with six sections connected by faders in the same order and length as Unity.</div>
+</div>
+<div class="footnotes">
+<ol>
+<li id="fn-dsp">A high-precision clock dedicated to audio playback that Unity's audio system has internally. When used in combination with <code>AudioSource.PlayScheduled()</code>, it is possible to make a reservation that does not depend on the frame rate, “to play the sound exactly at that time,” rather than “at what frame”. This is a different clock from the <code>Time.time</code> used for time management throughout the game.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch02">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 02</span>
+<span class="chapter-stage">Rhythm Judgment</span>
+</div>
+<h2>A Rhythm Game You Play by Raising Your Hand</h2>
+<p>The basic structure of the rhythm game part (generating notes from musical score data and making judgments based on time) was created with reference to Qiita's explanatory articles “<a href="https://qiita.com/nattoufu/items/5b0bab1bc244bf2ef280">Creating a music game [Basic implementation version]</a>” and “<a href="https://qiita.com/keichankotaro/items/0fa2b244468ca311cbd1">Let's create a music game with Unity (Notes/score version)</a>.” The structure of having the musical score as external data and separating the judgment and display is as shown above, but the difference in this work is that the input is at the height of the hand rather than a button, and the wire mechanism is connected to the end of the judgment.</p>
+<p>The judgment mechanism itself is the same regardless of whether it is first person, third person, or live action. Participants' left and right hands are tracked by Quest's hand tracking, and they are considered successful if their hands fall within a certain range at the time, hand, and height specified on the musical score (a predetermined list of beats, left and right hands, and heights). As it approaches the target, it moves in a curved line (minimum jerk<sup class="fnref" id="fnref-jerk"><a href="#fn-jerk">[1]</a></sup>) where the speed becomes zero at the beginning and end, making it look like a natural acceleration/deceleration closer to the movement of a human hand than a mechanical movement at a constant speed.</p>
+<p><a href="https://ja.wikipedia.org/wiki/%E3%83%96%E3%83%A9%E3%82%B6%E3%83%BC%E3%82%BA_2%E4%BA%BA%E3%81%AE%E6%81%AF%E5%AD%90%E3%81%AE%E7%89%A9%E8%AA%9E">Brothers: A Tale of Two Sons</a> (2013) was a reference for the design of changing the meaning after the body memorizes the correspondence between operations. In this game, the left and right sticks are assigned to an older brother and younger brother, respectively, and the player's body learns how to move both of them at the same time with both hands, and then the meaning of one input changes as the story progresses. In this work as well, the pre-start calibration (holding both hands still and placing a target on the basis of their height) does not determine the button placement, but rather the correspondence between the action of “raise your hands at this height” and the judgment, and while the action itself remains unchanged until the end, the object attached to the target changes from the target to a doll, and from the doll to an image of yourself at each stage.</p>
+<div class="embed">
+<img alt="Brothers: A Tale of Two Sons screenshot. A scene where an older brother and younger brother walk side by side" loading="lazy" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2153350/ss_a4f5bd8bfb27fceedb081290cce6c5c323b02cd0.1920x1080.jpg"/>
+<div class="embed-caption">Brothers: A Tale of Two Sons (Source: <a href="https://store.steampowered.com/app/225080/Brothers__A_Tale_of_Two_Sons/">Steam Store Page</a>)</div>
+</div>
+<p>The musical score is designed to allow at least 4 beats when jumping two steps high (20cm) at once, and at least 2 beats when moving to the next step. This is because the physical wire drive mechanism described later cannot move the arm faster than that.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-jerk">A motion curve designed so that the velocity and acceleration of an object are zero at both the moment it starts moving and the moment it stops. This is a commonly used approximation based on observations of the movement of the human arm, and it appears to be a movement that "accelerates smoothly and stops smoothly", which is more natural than uniform linear motion.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch03">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 03</span>
+<span class="chapter-stage">Silhouette as Collider</span>
+</div>
+<h2>Using the Person Mask for Hit Detection</h2>
+<p>At the live-action stage, it is necessary to add hit detection to the cut out footage of the person himself. If it's a 3D doll, you can just add a collider, but in a live-action version, the actual person is a single image, and the outline changes every frame. Therefore, without using a physics engine, I wrote a module that calculates where the point I want to judge is on the video screen, reads the pixels of the mask image at that position (the silhouette of the person output by RVM, handled in <a href="../pipeline/">Recording on the PC</a>), and determines whether it is inside the person.</p>
+<p>There are many precedents in media art for using silhouettes captured with a camera to determine collisions. In Myron Krueger's <a href="https://en.wikipedia.org/wiki/Videoplace">Videoplace</a> (1970s), the camera's outline of the audience pushes and grabs shapes on the screen, and in <a href="https://en.wikipedia.org/wiki/Camille_Utterback">Camille Utterback</a> and Romy Achituv's Text Rain (1999), falling letters pile up on the silhouettes of the audience. In both cases, the body shape is not made into a polygon, and the pixels of the image are used as they are for judgment, and the judgment in this work is made in the same way.</p>
+<div class="embed">
+<img alt="Videoplace experience. The silhouette of the audience reflected on the screen overlaps with the graphic." loading="lazy" src="https://ars.electronica.art/aeblog/files/2022/01/videoplace_2000x1000_3.jpg"/>
+<div class="embed-caption">Myron Krueger, Videoplace (Source: <a href="https://ars.electronica.art/aeblog/en/2022/01/13/throwback-videoplace/">Ars Electronica Blog "Throwback: Videoplace"</a>)</div>
+</div>
+<p>Since it is a stereo image, the same point is sampled independently with each mask for the left eye and the right eye, and a hit is determined only when both eyes simultaneously determine that a person is present. This is a guard to prevent the erroneous judgment from being adopted as is if only one eye mask responds incorrectly due to noise. For each judgment point, the center and eight ring-shaped sample points around it are also looked at, and if a certain percentage (default 50%) or more hits, it is considered a “collision”. This prevents false reactions such as the judgment blinking momentarily at the jagged border near the outline of the mask.</p>
+</section>
+<section class="chapter" id="ch04">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 04</span>
+<span class="chapter-stage">Pose Fusion</span>
+</div>
+<h2>Refining the Estimated Pose with Quest Hand Tracking</h2>
+<p>In the third-person doll stage, the participant's whole body posture (shoulders, elbows, hips, knees, etc.) is received from the PC's posture estimation (RTMPose, or MediaPipe as a backup path) and reflected on the doll. There is a slight discrepancy between the hand position estimated from the video and the hand position actually measured by Quest, so we decide which one to use for each body part. Quest's actual measurements are always used for game judgment and wire drive (described later), and postures derived from video are used only to supplement the display of the torso, elbows, knees, and feet.</p>
+<p>In the process of combining these two coordinate systems (the skeleton derived from the video and the actual measured position of the Quest), a reference axis that is perpendicular to the video side and the Quest side is created from three points: the position of both hands and the direction from the midpoint of both hands to the head, and rotation, scaling, and translation are calculated from there. After applying the obtained transformation to the entire frame on the video side, the head and hands are moved closer to the Quest's actual measured position. The way the doll's arms and legs bend is solved using simple inverse kinematics (IK) <sup class="fnref" id="fnref-ik"><a href="#fn-ik">[1]</a></sup> that has two joints, and to prevent the elbows and knees from bending in the opposite direction, a restriction is added to limit the angle just before they reach full extension.</p>
+<div class="embed">
+<img alt="Doll before IK adjustment. Both arms are crossed in front of the body, elbows bent in an impossible direction." loading="lazy" src="ik_before_tuning.png"/>
+<div class="embed-caption">Screenshot before the IK adjustment worked. The restriction on the direction of bending of the elbows is not working, and both arms are crossed in front of the body, causing the joints to collapse.</div>
+</div>
+<h3>Re-determine the direction of elbow bending</h3>
+<p>This failure was resolved through subsequent rebuilding. For the current arm, we replaced it with a solver that analytically solves the two bones of the shoulder, elbow, and wrist in one shot, and then added a part that determines each frame which way the elbow extends, which was the real cause of the failure. The standard is the natural position of the elbow when sitting and reaching forward (slightly outside, slightly below, or slightly in front of the torso), and the position of the person's elbow actually detected by posture estimation is mixed into this up to a maximum of 85% depending on the detection reliability. In other words, the doll's elbows do not bend in an appropriate direction based on geometric adjustments, but instead mirror the way the doll's elbows are stretched to the best of its ability.</p>
+<p>However, the position of the elbow caused by the camera becomes unstable due to noise, so there are three guards in between. First, remove only the component in the direction where the elbow passes through the torso and bends inward. Back and forth and up and down movements are allowed to pass through, so if the doll raises its elbow, the doll's elbow also goes up. Second, unless the arm is almost fully extended, the bending direction is prohibited from turning over all at once to the opposite side. The intersection shown in the photo at the beginning was mainly caused by this turning over. Third, the determined direction is smoothed in the time direction so that it does not switch rapidly from frame to frame. In addition, the goal is to always push the palms at least 10 cm in front of the shoulders (there is no reaching behind the body in the seated experience), and the aim is to reach a ceiling just before the arms are fully extended.</p>
+<div class="embed">
+<img alt="The doll after being remade. Both arms are naturally bent in front of the body, and the hands are in the positions of the left and right rings." loading="lazy" src="ik_after_tuning.png"/>
+<div class="embed-caption">The same doll after being remade. Elbows extend outward from torso and arms reach the ring without crossing each other.</div>
+</div>
+<h3>Arm position and ring synchronization</h3>
+<p>The glowing rings that appear as targets in rhythm games are also an extension of this coordinate alignment. The position of the ring is not set as a fixed coordinate in space, but is determined from the calibration at the beginning of the experience. At the start, fix the coordinate system that takes only the horizontal rotation from the orientation of the Quest's HMD, and set the positions of both palms at that time as the positions of the "middle row" rings on the left and right sides. Stack the upper and lower tiers in 10cm increments. In other words, the musical score only specifies “which arm and which step”, and the actual location where the ring appears is calculated backwards from where the participant's arm would naturally reach at that moment. Even if your arm length or sitting height is different, the ring will never be too far away for you to reach.</p>
+<p>Judging only by looking at the height according to this construction. Since the horizontal and depth coordinates of the ring remain unchanged during calibration, participants are limited to raising and lowering their arms, and if the difference between the height of the palm and the height of the target is within an acceptable range, a hit is achieved. The ring gets brighter as your hand approaches it, and the intensity of the spotlight that illuminates the target changes in conjunction with this distance, so you can find the correct height using color and brightness.</p>
+<p>In the third-person doll stage, the same ring is displayed at the position of the doll's arm. Since the doll was sitting facing the participant, it was presented in the same way as a mirror. The ring on the participant's physical left hand appears on the left side of the screen, and the corresponding doll bone becomes an anatomically opposite arm. The position of the ring is updated every frame, but the movement is switched instantly without interpolation. If it were to slide smoothly, the ring would appear to be an object that moves of its own accord, and the correspondence with the arm would seem disconnected.The abruptness of the instantaneous movement is hidden by the fade when the ring lights up as the next target.</p>
+<div class="embed">
+<img alt="A trial screen at the live-action stage. Yellow and red glowing rings are floating on the left and right sides of the image on the participant's back." loading="lazy" src="ring_targets_sync.png"/>
+<div class="embed-caption">Ring in live action stage. Yellow on the left hand side, red on the right hand side. The ring appears based on the position of the person's palm at the time of calibration.</div>
+</div>
+<div class="footnotes">
+<ol>
+<li id="fn-ik">Inverse Kinematics. Calculate “If I want my shoulders and wrists to be in this position, how much should I bend my elbow between them?” by calculating backwards from the target position of the hands. If it is a simple chain with only two joints (elbows, knees, etc.), it can be solved analytically in one go based on the relationship between the lengths of the sides of the triangle.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch05">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 05</span>
+<span class="chapter-stage">Physical Actuation</span>
+</div>
+<h2>Using Hit Results to Trigger the Cable Pull</h2>
+<p>All the judgments up to this point are completed on the screen, but MetaPuppet has one more physical output. There is a mechanism in the actual machine that winds up four wires corresponding to the left and right wrists and elbows using a motor, and depending on the results of collision detection in the game, the tension of each wire is sent to the microcontroller (ESP32) up to 60 times per second via UDP. When a participant misses a target on the screen, that information is converted into an actual arm pull force.</p>
+<p>On the game side, the closest thing to this part is <a href="https://ja.wikipedia.org/wiki/INSIDE_(%E3%82%B3%E3%83%B3%E3%83%94%E3%83%A5%E3%83%BC%E3%82%BF%E3%82%B2%E3%83%BC%E3%83%A0)">INSIDE</a> (2016). In that game, a game mechanic appears in which a person wearing a device walks around from the outside, and the person who operates it is the player himself who is controlling the avatar from the outside. The device that controls people inside the screen and the controller outside the screen perform the same function. This work extends this relationship to the physics side. The game's judgment results do not end up as effects on the screen, but return through wires to the player's body.</p>
+<div class="embed">
+<img alt="INSIDE key visual. Silhouette of a boy walking in a dark forest" loading="lazy" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/304430/header.jpg"/>
+<div class="embed-caption">INSIDE (Source: <a href="https://store.steampowered.com/app/304430/INSIDE/?l=japanese">Steam store page</a>)</div>
+</div>
+<p>There is also a previous work that uses a mechanism to deliver the output of a computer to the actual human body. In Marcel·lí Antúnez Roca's <a href="https://en.wikipedia.org/wiki/Marcel%C2%B7l%C3%AD_Ant%C3%BAnez_Roca">Epizoo</a> (1994), the audience's touch panel operations move the artist's body via a pneumatic mechanism. In <a href="https://en.wikipedia.org/wiki/Stelarc">Stelarc</a>'s Ping Body and Fractal Flesh (1995-96), data over a network and manipulation from a remote audience act as electrical stimulation to move the artist's muscles. In Daito Manabe's <a href="https://rhizomatiks.com/work/electricstimulustoface/">Electric Stimulus to Face</a> (2008), sound signals act as electrical stimulation to move the person's facial muscles. Both systems run from a computer to the human body via an actuator, but the body that is moved and the body that provides the input to move are different. In this game, the body movement that the participant inputs into the game becomes the tension of the wire after being judged, and the body returns to the same body that was input. This closed circle is the content of the title “Manipulate yourself.”</p>
+<div class="embed">
+<iframe allowfullscreen="" loading="lazy" src="https://www.youtube.com/embed/smdBFx1EYGU" title="Stelarc - Ping Body (Technical Documentation)"></iframe>
+<div class="embed-caption">Stelarc, Ping Body — Technical Documentation (Source: <a href="https://youtu.be/smdBFx1EYGU">YouTube, V2_ Lab for the Unstable Media</a>)</div>
+</div>
+<p>Since it is a device that is physically operated by people, appropriate precautions must be taken in terms of safety design. When starting the device, a test was conducted to confirm that no one was wearing it, and participants could make an emergency stop at any time by pinching the thumbs and index fingers of both hands for 5 seconds, or by pressing the Escape key on the keyboard.</p>
+</section>
+<section class="chapter" id="ch06">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 06</span>
+<span class="chapter-stage">Art Direction / Shaders</span>
+</div>
+<h2>The Decaying Stage and Its Shaders</h2>
+<p>Regarding the look of the stage, the first thing we decided on was not to make it flashy. Since the main character is the participant's own body, the stage side is kept dark and moving objects are reduced to the swaying of the statue and the oscillation of the light.</p>
+<h3>sky and stage</h3>
+<p>The sky is a gradated dome, with a dark gray horizon and an almost black purple at the zenith. The unevenness of the clouds has been reduced to about 7% and is moving very slowly. The stage floor and structures have a color scheme of black, ivory, ocher, red, and blue-gray, taken from Bauhaus stage design. Oskar Schlemmer's <a href="https://en.wikipedia.org/wiki/Triadisches_Ballett">Triadic Ballet</a> (1922) was a stage play in which people were danced in costumes to resemble geometric puppets, and I thought it made sense that this work, which treats the participants as puppets, would borrow the colors of the same school. The material does not use any image textures, just noise <sup class="fnref" id="fnref-noise"><a href="#fn-noise">[1]</a></sup> created by calculations from coordinates, which shows dirt on the stone, uneven surface roughness, and wear on the corners. Not reading textures also saves memory and bandwidth when running Quest alone.</p>
+<div class="embed">
+<img alt="Triadic ballet stage photo. Dancers in geometric costumes (August 16, 1923)" loading="lazy" src="https://uploads-ssl.webflow.com/64d20a78755fe3e88cabcd55/652f79bc600497122b16802d_The-Triadic-Ballet-Oskar-Schlemmer-16-August-1923.jpg"/>
+<div class="embed-caption">Oskar Schlemmer, The Triadic Ballet, 1923 (Source: <a href="https://www.schlemmer.org/triadic-ballet">schlemmer.org</a>)</div>
+</div>
+<p>The color scheme and materials were not decided on at once. At the mid-production stage, the color scheme derived from the Bauhaus was kept almost unchanged, with high saturation and the texture of the stone had not yet been achieved. From there, I used computational noise to add dirt and wear, dimmed the lights, and reduced the saturation.</p>
+<div class="embed">
+<img alt="A stage production in progress. Ocher geometric structures are lined up with saturation close to primary colors." loading="lazy" src="stage_wip_early.png"/>
+<div class="embed-caption">A stage production in progress. At the stage where you just set the color scheme, the saturation is high and the material remains flat.</div>
+</div>
+<div class="embed">
+<img alt="The stage after the adjustments have been made. A stone-like dirt and uneven structure stands in dim lighting" loading="lazy" src="stage_wip_later.png"/>
+<div class="embed-caption">The same stage after adjustments have been made. Adding dirt and wear to the stone due to noise, dimming the lighting and reducing the saturation.</div>
+</div>
+<p>In the background are statues (public domain scanned models, such as the Winged Victory of Samothrace and Laocoön). The image of a stage with motionless human figures comes from the huge stone statue that appears in the final song of <a href="https://ja.wikipedia.org/wiki/%E3%83%89%E3%83%A9%E3%83%83%E3%82%B0%E3%82%AA%E3%83%B3%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3">Drag on Dragoon</a>.</p>
+<div class="embed">
+<iframe allowfullscreen="" loading="lazy" src="https://embed.nicovideo.jp/watch/sm22664999" title="drag on dragoon last song"></iframe>
+<div class="embed-caption">Drag-on Dragoon “Last Song” (<a href="https://www.nicovideo.jp/watch/sm22664999">Nico Nico Douga</a>)</div>
+</div>
+<p>This quotation from the stone statue does not end with the front stage. Behind the participants, a giant head statue (puto, statue of an angel child) is placed throughout the experience. Although it is out of sight when facing forward, it is always there throughout the experience when you turn around, looking down on the participants. Behind the final question, “Was it really you who was driving you?” there is something big that has been there from the beginning.</p>
+<div class="embed">
+<img alt="A huge white head statue placed behind the participants. A black square pillar appears in the foreground, and the words at the end overlap." loading="lazy" src="giant_head_behind.png"/>
+<div class="embed-caption">A giant puto (angel child) head placed behind the participants. It stays behind you throughout the experience, and the final words also appear against the backdrop of this statue.</div>
+</div>
+<h3>How to choose a statue</h3>
+<p>The statues placed on stage were not chosen because they were famous, but each one was selected to be something that overlaps with the structure of this work, in which “the body is moved from the outside”.</p>
+<p>The most direct one is the <a href="https://ja.wikipedia.org/wiki/%E3%83%A9%E3%82%AA%E3%82%B3%E3%83%BC%E3%83%B3%E5%83%8F">Laocoon statue</a>. The composition is of a man who is wrapped around a snake sent as a divine punishment, deprived of his physical freedom and still fighting back, and the work itself represents “a person whose body is restrained by an external force.” The situation is the same as that of the participants in this work, whose arms are pulled by wires due to pinched fingers. It is the largest stage on the stage and is placed in a position where it can be clearly seen by the participants.</p>
+<div class="embed">
+<img alt="A statue of Laocoön placed on the stage. A human body wrapped around a snake is struggling between black pillars." loading="lazy" src="statue_laocoon.png"/>
+<div class="embed-caption">Statue of Laocoön on the stage. The composition of a participant fighting while being restrained by a snake overlaps with the participant's arm being pulled from outside.</div>
+</div>
+<p><a href="https://ja.wikipedia.org/wiki/%E3%82%B5%E3%83%A2%E3%83%88%E3%83%A9%E3%82%B1%E3%81%AE%E3%83%8B%E3%82%B1">The Winged Victory of Samothrace</a> is a statue that has lost its head and both arms, but only the movement of stepping forward in the wind remains, and although its face and intentions cannot be seen, its body movements can be clearly read. It is similar to the appearance of the participants in this work, who are cut out with a camera and only their posture is transmitted to VR before their facial expressions. The <a href="https://ja.wikipedia.org/wiki/%E3%83%99%E3%83%AB%E3%83%B4%E3%82%A7%E3%83%87%E3%83%BC%E3%83%AC%E3%81%AE%E3%82%A2%E3%83%9D%E3%83%AD%E3%83%B3">Apollo Belvedere</a> is a statue that has long been cited as a standard for the “ideal body,” and the wooden dolls that serve as participants' alter egos are the anonymous bodies that fit into that mold.</p>
+<p>The head of a puto (an angel child) in the background is a motif that has been depicted in Western paintings and sculptures as an entity that looks at human activities from above and sometimes moves people with arrows or strings. This statue, which looks down on the participants from behind throughout the experience, plays the role of “something invisible” that moves the participants.</p>
+<p>The scene of a scanned human body standing in space as a white statue also references Rhizomatiks' <a href="https://rhizomatiks.com/work/perfume-disco-graphy/">Perfume Disco-Graphy 25 Years of Trajectory and Miracle</a> (2024). In this exhibition, the three members of Perfume, who have been recorded volumetrically, continue to reenact their past performances in statue-like white figures, and their presence, which lies somewhere between a still stone statue and a living body, is similar to the way the statues and dolls are presented in this work.</p>
+<div class="embed">
+<img alt="Installation view of the Perfume Disco-Graphy exhibition. Three members of Perfume in white volumetric scan are dancing" loading="lazy" src="https://rhizomatiks.com/wp-content/uploads/2024/11/chapter1_weareperfume_1web-1.jpg"/>
+<div class="embed-caption">Rhizomatiks, Perfume Disco-Graphy 25 years of history and miracles, 2024 (Source: <a href="https://rhizomatiks.com/work/perfume-disco-graphy/">rhizomatiks.com</a>)</div>
+</div>
+<p>The statue was not held completely still, but was swayed from side to side at an amplitude of 4 cm and a period of 50 seconds. It's so fast that you don't notice it unless you look at it. Rotation was also an option, but since it would look ridiculous for a heavy stone statue to rotate in place, I decided against it, and instead opted for only horizontal and vertical movements. The light has a motion of shaking its head every ten seconds or so.</p>
+<p>In PCVR, this light is matched with <a href="https://github.com/CristianQiu/Unity-URP-Volumetric-Light">volumetric fog for URP</a> (by Mr. CristianQiu). The space is filled with a thin layer of fog, and the amount of light scattered through the fog is calculated using ray marching (a drawing method that adds up the density of the fog as it advances little by little along the line of sight), so the streaks of light stand out as a volume within the space rather than as a screen effect. With VR, you can move your head and look into the light beam from the side, so the difference from a flat glow effect becomes clear. Real-time fog is used to mimic the appearance of Anthony McCall's <a href="https://en.wikipedia.org/wiki/Line_Describing_a_Cone">Line Describing a Cone</a> (1973), in which the projected light of a smoke-filled room appears as a three-dimensional object that can be touched. The density of the fog is linked to the effect intensity value, which will be described later, and becomes darker as it approaches the live-action stage. This fog was too heavy for Quest to burn, so it was replaced with a cheaper approximation (Chapter 7).</p>
+<div class="embed">
+<img alt="Installation view of Line Describing a Cone. A cone-shaped projection light floats in the smoke as a three-dimensional object." loading="lazy" src="https://whitneymedia.org/assets/artwork/15286/926_IntoTheLight_VW35_035.jpg"/>
+<div class="embed-caption">Anthony McCall, Line Describing a Cone, 1973 (Source: <a href="https://whitney.org/collection/works/15286">Whitney Museum of American Art</a>)</div>
+</div>
+<h3>Shader for the moment when the doll changes to itself</h3>
+<p>The most important part of this experience in terms of production is the moment when the third-person puppet is replaced with a live-action image of the person himself. I wrote a dedicated shader here. The mechanism is summarized in one threshold map. Cut the surface of the doll into a grid of 48 x 48, give each grid a unique value using a random number, and mix in a finer regular noise called Interleaved Gradient Noise<sup class="fnref" id="fnref-dither"><a href="#fn-dither">[2]</a></sup> to determine one value between 0 and 1 for each pixel. From pixels whose progress exceeds that value, the image of the doll itself is displayed instead of the doll's color. Since the pixels with the lowest values ​​are switched first, the initial stage becomes a cluster of sparse dots, and the final stage becomes an area, resulting in an appearance similar to that of a developed photograph. The judgment width of the threshold is set to a narrow value of 0.04, so the boundaries do not melt smoothly and proceed as grains.</p>
+<p>Two details have also been added. The random numbers in the lattice fluctuate slightly over time, and even when progress is stopped, the particles continue to flicker and replace each other. A light blue-white color is added to the border band where the image is changing, and only the areas where development is currently progressing appear a little brighter. The image of the person displayed is the YUV stereo image and RVM mask that arrive through the same route as the VR display shader on the <a href="../pipeline/">PC side</a>, and the left and right eyes read different textures, and pixels outside the mask do not appear in the first place. The only thing that is “developed” on the doll is the person who has been cut out.</p>
+<div class="embed">
+<div class="seq">
+<img alt="The beginning of development. Grainy particles are starting to appear only on the doll's hands." loading="lazy" src="morph_1.png"/>
+<img alt="Midway through development. The upper body of the doll is replaced with grid-like grains, creating a mixture of live action and doll." loading="lazy" src="morph_2.png"/>
+<img alt="The final stage of development. The doll is almost replaced by live-action footage of the person, hitting the ring with both hands." loading="lazy" src="morph_3.png"/>
+</div>
+<div class="embed-caption">The moment when the doll transforms into itself. The development begins in grains from both hands, and the grains in each lattice become surfaces and are replaced by the person's actual photograph.</div>
+</div>
+<h3>Interlocking lighting and post effects stages</h3>
+<p>The intensity of the production is a single number that increases depending on whether the experience progresses to first person, puppet, or live action, and the bloom (light blur), color tone, vignette (darkness around the screen), fog density, and stage lighting are determined from this number for each frame. On top of this is the flickering that synchronizes with the beat. The beginning of the film begins with a subdued image, and the lighting reaches its peak during the live-action stage. I did this because I didn't want to manage the timelines of individual effects by hand.</p>
+<h3>Shader quality for displaying live-action footage</h3>
+<p>The "Stereo Dual Unlit" shader that produces a live-action image of the person receives independent images for each eye, and selects and displays the pair that corresponds to the eye that is currently being drawn. A series of quality improvements were later made here. First, I corrected the color handling. The video that arrives is broadcast standard (BT.709 video range) YUV, and if this is converted to non-linear RGB for the screen and then poured into Unity's linear color space, the colors will sink and even when combined with the mask, the edges will become muddy. The brightness and color difference were developed on a linear texture, the non-linear encoding was unwound, and then returned to the scene, and the path was organized so that the mask synthesis was applied only once as a straight alpha. At the same time, the old color multiplication that caused images to turn yellow has been removed and replaced with neutral colors while maintaining brightness.</p>
+<p>The quality of the contours has been increased without adding additional textures or drawing passes. Read the brightness at four points, top, bottom, left, and right from the center, and apply a slight sharpening based on the difference. The problem of hard breaks on a pixel basis at the edges of images, trimming, and distortion correction boundaries is replaced by a smooth slope whose width is determined from the differential on the screen, and is independent of resolution. By default, the mask is cut with a threshold of 0.55 and a softness of 0.06, and only uncertain edges are slightly rejected. Half an LSB worth of dither is applied to prevent gradation cracking in the 8-bit output, but if it applies to pixels where no image exists, it becomes garbage, so I added a gate so that it applies only to valid pixels. Exposure uses the camera's brightness already available to compress only the highlights that exceed the brightness of the stage, leaving the contrast of dark clothing and silhouettes. In the final third of the live-action phase, the statue gradually takes on the same rough texture as the doll, with the final shader change placing it on the side of the body rather than on the world around it.</p>
+<div class="embed">
+<div class="seq">
+<img alt="Live-action display before adjustment. The entire figure turns yellow-green, with blurred outlines and edges of light." loading="lazy" src="rvm_shader_before.png"/>
+<img alt="Live-action display after adjustment. The colors are neutral and the outline is tight to blend in with the stage." loading="lazy" src="rvm_shader_after.png"/>
+</div>
+<div class="embed-caption">Before (left) and after (right) adjustment. On the left, the color has changed to yellow-green, and the outline has blurred, with edges of light appearing. On the right, the colors are more neutral and the edges are tighter to blend in with the stage light.</div>
+</div>
+<p>There is also a trick to handling mirror images. When showing a person facing each other like a mirror, simply reversing the horizontal direction will reverse the depth of the stereoscopic view. Therefore, horizontal reversal is always paired with swapping the left and right eyes to create a mirror image while preserving depth. In the last note, where the hands are switched, the image is compressed into a narrow strip in the center, and while it is narrowing, the mirror images are exchanged and expanded again. Rather than switching across the entire screen, the switching occurs in a thin band, making it unnoticeable.</p>
+<h3>Hologram collapse at the end</h3>
+<p>At the end of the live-action stage, the image of the person in question collapses like a hologram. It's a stage added to the same shader, so it's always in a slightly more "alive" state than normal. Thin scan lines, flickering interlaces, thin lateral afterimages, and tiny jitters from line to line. Occasionally, there are short seizures. Several rows of bands are torn horizontally, sparse blocks fly one square, and the colors shift. Most of the time the picture is clear because the seizures are slow and closed. The strength of the collapse is determined by the number of seconds remaining in the live-action stage, ranging from 0 to 1, and progresses from barely noticeable in the first few seconds to dense tearing and dropped frames, vertical sliding across the screen, and several black frames. In the final stage, the brightness is graduated, making it look more like corrupted data than an image.</p>
+<p>What we paid special attention to in this production was stereoscopic viewing. If the noise input is screen coordinates, different noise will be generated for the left and right eyes, and the images will not be fused, resulting in glare. Therefore, all input of random numbers was limited to coordinates and time on the image plane, so that the same disturbance appeared in the depth of the image plane for both eyes. The random numbers are also integer hashes that do not use trigonometric functions, so that even if the GPU is different, the same pattern will appear and the accuracy will not deviate. The edges of the torn strips are connected smoothly with a width of about 10%, so that the images appear continuous, similar to analog out-of-sync, and the border rows have bright seams that can be read even with a headset. Furthermore, it retains the brightness and mask history of the last few dozen frames, and adds an afterimage that depicts the person's body 8 to 30 frames behind the current image. The delay width is not fixed and is slowly changed. This collapse is driven at the same rate as the signal collapse on the sound side, and the more the image is destroyed, the more the sound is destroyed, and the position of the sound also rotates and trembles.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-noise">A method (value noise) that creates uneven shading without using an image, just by calculating using coordinates as input. Since the same coordinates always return the same value, the pattern does not flicker and there is no need to load texture images.</li>
+<li id="fn-dither">Noise that is regular but does not have noticeable stripes, determined by calculation using only screen coordinates as input. Because it can be written in one line without reading the texture, it is widely used for dithering (a method of expressing shading using the density of dots).</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch07">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 07</span>
+<span class="chapter-stage">XR / Rendering</span>
+</div>
+<h2>XR Settings and Performance at the Venue</h2>
+<p>Much of the setting in this chapter comes from two concerns. One is to not stop the experience at the venue. The full configuration of this work is PCVR, which connects the PC and Quest, and both character masking and the live-action stage rely on the GPU on the PC side. We have prepared a separate configuration that can run on Quest alone so that the entire experience will not stop if a problem occurs on the PC side at the venue. The other is to keep the Quest single configuration at 72 frames per second on a mobile GPU. In VR, dropped frames can easily lead to motion sickness, and since this is an experience in which you are asked to move your body in time with the music, if the pictures get stuck, the experience deteriorates before the numbers are judged.</p>
+<h3>Use footage and masks without taking them off the GPU</h3>
+<p>I will also touch on how Unity receives the images and masks received from the PC side. The main process is as described in Chapter 5 of <a href="../pipeline/">Communication Infrastructure Records</a>. The two decoded left and right images (NV12) undergo preprocessing as Direct3D 11 textures on the GPU, pass through a buffer that interoperates with CUDA, enter RVM inference, and the resulting mask also undergoes blurring and temporal smoothing on the GPU, before being passed directly to Unity as a texture. In this path, neither the image nor the mask is ever returned to the CPU's memory. The live-action display shader on the Unity side only directly reads the brightness, color difference, and mask aspects for each eye, and does not have the process of copying the image back to the Unity texture.</p>
+<p>What makes this work effective for Unity's design is the "lightness" of the live-action stage. The cost of drawing the person's image is just for the shader to read a few faces, and the burden on the drawing side remains the same even if the image resolution increases. Both the process of using masks for collision detection (Chapter 3) and the process of using Quest's hand to continue moving when pose estimation is not received (Chapter 4) are based on the premise that the image and mask are “textures placed on the GPU every frame.” Only the pose estimation results are sent to the CPU as small packets containing joint positions, and then sent to the doll's skeleton. Large data is kept on the GPU, and only small data is handled on the CPU.</p>
+<p>The XR environment is based on OpenXR<sup class="fnref" id="fnref-openxr"><a href="#fn-openxr">[1]</a></sup>, and is configured by combining the extensions provided by Meta, the hand tracking package, and the XR Interaction Toolkit. For stereo drawing, the single-pass instancing (method of drawing both eyes with one drawing command), which was mentioned in Chapter 6 of <a href="../pipeline/">PC side records</a>, is used in the drawing settings for both Android and PC. In VR, the same scene is drawn twice with the left and right eyes, so eliminating the duplication of drawing commands is the starting point for countermeasures against the load.</p>
+<p>There was a plan to use Composition Layers<sup class="fnref" id="fnref-complayer"><a href="#fn-complayer">[2]</a></sup> to compose the video, but in the end I didn't use it and ended up using regular board polygons and shaders.</p>
+<p>When running Quest alone, foved rendering <sup class="fnref" id="fnref-foveation"><a href="#fn-foveation">[3]</a></sup> is enabled and the render scale is reduced to 0.8. The participants' eyes are mostly focused on the target and their hands during the game, so it is difficult to notice even if the resolution of the peripheral areas of the field of vision is lowered. The thing I was most disappointed in was the fog.The streaks of light in Chapter 6 were made possible by volumetric fog, but it was too heavy for the Quest to fire every frame. In standalone operation, a similar appearance is created using exponential function fog, which is cheap to calculate, and particles limited to 32.</p>
+<p>The situation is different when frames are dropped when connected to a PC (PCVR), and the solution will differ depending on whether the cause is RVM reasoning or Unity drawing. If inference is heavy, lower the resolution setting, and if drawing is heavy, reduce effects. To separate them, inference time and rendering load can be measured separately.</p>
+<p>The cost of Quest standalone operation is the final stage of the experience. Since there is no RVM reasoning on the PC side, it cannot proceed to the live-action stage, and the composition stops at the third-person puppet stage. This was accepted as a result of prioritizing a configuration that would work reliably at the venue.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-openxr">An industry standard specification for unifying APIs that differed by VR headset manufacturer. Apps that support OpenXR will work on any compatible headset, regardless of the manufacturer.</li>
+<li id="fn-complayer">Normally, VR images are drawn by Unity as a single image for each frame and then passed to the headset, but Composition Layers directly passes only specific planes and videos to the OpenXR runtime side, and composes them on the headset side. It is used to reduce the load and make characters appear clearer.</li>
+<li id="fn-foveation">This technology takes advantage of the fact that the human eye is less likely to notice a decrease in resolution in areas other than the center of the field of view, and intentionally lowers the rendering resolution in areas away from the center of the line of sight to reduce the load.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="epilogue">
+<div class="chapter-head">
+<span class="chapter-num">Epilogue</span>
+<span class="chapter-stage">Summary</span>
+</div>
+<h2>Afterword</h2>
+<p>What was interesting while writing the Unity side was how the moving speed of the wire directly appeared in the music score design. The hand that writes music is tied to the winding speed of the motor. I don't think I would have had the opportunity to write the code where the game rules and machine convenience are arranged in the same file if I hadn't created this work.</p>
+<p>For a normal rhythm game, all you have to do is look at the music and difficulty level and write the score. The intervals in this work, 2 beats for jumping to the next step and 4 beats for jumping 2 steps, are not numbers derived from the reaction speed of the participants, but are calculated backwards from the shortest time the arm can physically reach that height, as a result of the speed at which the motor can wind around the drum and the upper limit on acceleration to prevent the arm from being pulled suddenly. When I try to pack up a notebook, the question always comes up: “Will the mechanism be able to make it in time?” The task of making the game more interesting and the task of moving people's arms safely were in a tug-of-war over the same musical score data.</p>
+<p>The same thing happened on the judgment side. The reason we settled on a simple judgment that only looks at the height of the hands was not just for the sake of ease of play. If the judgment extends to the horizontal position, a situation arises where the direction in which the wire pulls the arm and the direction in which the participant wants to move the arm are at odds, and the mechanism and the participant compete for control of their body. If you only move up and down, the direction the wire is drawn will always match the direction the music sheet requires. The reason the rules were removed was to prevent the machine from fighting with the body.</p>
+<p>Before making this work, I thought that game code and machine code were on different layers. It's a one-way relationship: the game makes a decision, and the machine receives it and moves. When I actually write about it, I find that the mechanical convenience goes back to the design of the judgment, the way the music is written, and the way the music is cut out. Having the participants' bodies actually move meant that their bodies were at the very top of the design process. The fact that it was the participants' bodies, not my own, that stood upstream was the most stressful part of making this work, and also the most interesting part.</p>
+<div class="signature">
+<div>MetaPuppet — Unity Implementation Notes</div>
+</div>
+</section>
+</div>
+</article>
+<div class="pagefoot">MetaPuppet</div>
+</body>
+</html>

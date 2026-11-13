@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>Building the Video Pipeline — MetaPuppet</title>
+<meta content="How MetaPuppet captures, transmits, processes, and renders stereo video to bring a live image of the participant into VR." name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Building the Video Pipeline — MetaPuppet" property="og:title"/>
+<meta content="How MetaPuppet captures, transmits, processes, and renders stereo video to bring a live image of the participant into VR." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/pipeline/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/pipeline/mp_logo.png" property="og:image"/>
+<link href="mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  /* dark-first, to match the MetaPuppet main site */
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent-soft:#3a2530;
+  --accent2:#6fbfc4;
+  --accent2-soft:#193638;
+  --code-bg:#0a0a0b;
+  --code-ink:#e7e6e0;
+  --code-accent:#e78fb3;
+  --code-accent2:#6fbfc4;
+}
+
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6;
+    --paper-raised:#f2f0eb;
+    --ink:#171a1d;
+    --ink-soft:#4b5459;
+    --ink-faint:#8b9296;
+    --rule:#d8d5cd;
+    --rule-strong:#b9b5aa;
+    --accent:#b8500e;
+    --accent-soft:#e8c7a9;
+    --accent2:#14646b;
+    --accent2-soft:#bcdadc;
+    --code-bg:#171a1d;
+    --code-ink:#e7e6e0;
+    --code-accent:#e0954f;
+    --code-accent2:#6fbfc4;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6;
+  --paper-raised:#f2f0eb;
+  --ink:#171a1d;
+  --ink-soft:#4b5459;
+  --ink-faint:#8b9296;
+  --rule:#d8d5cd;
+  --rule-strong:#b9b5aa;
+  --accent:#b8500e;
+  --accent-soft:#e8c7a9;
+  --accent2:#14646b;
+  --accent2-soft:#bcdadc;
+  --code-bg:#171a1d;
+  --code-ink:#e7e6e0;
+  --code-accent:#e0954f;
+  --code-accent2:#6fbfc4;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:760px;
+  margin:0 auto;
+  padding:64px 40px 90px;
+}
+
+.cover{
+  max-width:760px;
+  margin:0 auto;
+  padding:76px 40px 60px;
+  border-bottom:1px solid var(--rule);
+}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:22px;
+}
+.cover-kicker::before{
+  content:"";
+  width:26px;height:1px;
+  background:var(--accent);
+  display:inline-block;
+}
+.cover h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:800;
+  font-size:clamp(32px,5.6vw,48px);
+  line-height:1.4;
+  margin:0 0 20px;
+  text-wrap:balance;
+  letter-spacing:.01em;
+}
+.cover h1 em{
+  font-style:normal;
+  color:var(--accent);
+}
+.cover .sub{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  margin:0 0 34px;
+}
+.cover-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:28px 40px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+  border-top:1px solid var(--rule);
+  padding-top:22px;
+}
+.cover-meta div span{
+  display:block;
+  color:var(--ink-faint);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cover-meta div b{
+  color:var(--ink);
+  font-weight:700;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:13.5px;
+}
+.cover-meta .author{display:inline-flex; align-items:center; gap:8px;}
+.cover-meta .author img{width:22px; height:22px; border-radius:50%; object-fit:cover; display:block; filter:grayscale(1);}
+
+.pipeline{
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 20px 26px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(82px, 1fr));
+  align-items:stretch;
+  gap:0;
+  overflow:visible;
+  border-bottom:1px solid var(--rule);
+  background:var(--paper-raised);
+}
+.pl-step{
+  min-width:0;
+  padding:6px 9px 6px 4px;
+  position:relative;
+  font-family:"IBM Plex Mono",monospace;
+}
+.pl-step .n{
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.pl-step .t{
+  font-size:11px;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  font-weight:700;
+  margin-top:3px;
+  line-height:1.4;
+}
+.pl-step:not(:last-child)::after{
+  content:"→";
+  position:absolute;
+  right:-2px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-faint);
+  font-size:13px;
+}
+
+.chapter{scroll-margin-top:80px;}
+.chapter{
+  border-top:1px solid var(--rule-strong);
+  padding-top:46px;
+  margin-top:10px;
+}
+.chapter:first-of-type{border-top:none;}
+.chapter-head{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:8px;
+}
+.chapter-num{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:13px;
+  color:var(--accent2);
+  letter-spacing:.05em;
+  white-space:nowrap;
+}
+.chapter-stage{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-faint);
+}
+.chapter h2{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:700;
+  font-size:26px;
+  margin:6px 0 30px;
+  text-wrap:balance;
+}
+.lede{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  border-left:3px solid var(--accent);
+  padding-left:18px;
+  margin:0 0 34px;
+}
+
+.chapter h3{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:18.5px;
+  font-weight:700;
+  margin:38px 0 14px;
+}
+.chapter p{margin:0 0 20px;}
+
+.spec{
+  background:var(--paper-raised);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--accent2);
+  border-radius:2px;
+  padding:20px 22px 6px;
+  margin:28px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.spec-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--accent2);
+  margin-bottom:10px;
+}
+
+.code-wrap{
+  margin:24px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.code-label{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  color:var(--ink-faint);
+  margin-bottom:6px;
+  letter-spacing:.05em;
+}
+pre{
+  background:var(--code-bg);
+  color:var(--code-ink);
+  padding:18px 20px;
+  border-radius:3px;
+  overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  line-height:1.7;
+  margin:0;
+}
+pre .k{color:var(--code-accent2);}
+pre .c{color:var(--code-accent);}
+code{
+  font-family:"IBM Plex Mono",monospace;
+  background:var(--paper-raised);
+  padding:1px 5px;
+  border-radius:2px;
+  font-size:.9em;
+  border:1px solid var(--rule);
+}
+
+.chapter a, .cover a, .footnotes a{
+  color:var(--accent2);
+  text-decoration-color:var(--rule-strong);
+  text-underline-offset:2px;
+}
+.chapter a:visited, .cover a:visited, .footnotes a:visited{color:var(--accent2);}
+.chapter a:hover, .cover a:hover, .footnotes a:hover{color:var(--accent);}
+
+.diagram{
+  margin:30px 0;
+  border:1px solid var(--rule);
+  background:var(--paper-raised);
+  padding:22px;
+  page-break-inside:avoid;
+}
+.diagram-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-faint);
+  margin-bottom:14px;
+}
+.dg-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.dg-box{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  border:1px solid var(--rule-strong);
+  background:var(--paper);
+  padding:10px 13px;
+  border-radius:2px;
+  text-align:center;
+  line-height:1.5;
+}
+.dg-box b{display:block;font-size:12.5px;color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-box small{color:var(--ink-faint);font-size:10px;}
+.dg-box.hot{border-color:var(--accent);}
+.dg-box.hot b{color:var(--accent);}
+.dg-box.gpu{border-color:var(--accent2);}
+.dg-box.gpu b{color:var(--accent2);}
+.dg-arrow{
+  color:var(--ink-faint);
+  padding:0 8px;
+  font-size:14px;
+}
+.dg-col{display:flex; flex-direction:column;}
+.dg-step{
+  border:1px solid var(--rule-strong);
+  background:var(--paper);
+  border-radius:2px;
+  padding:12px 16px;
+  line-height:1.6;
+}
+.dg-step b{display:block; font-size:13.5px; color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-step small{display:block; color:var(--ink-soft); font-size:12px; margin-top:2px;}
+.dg-step .code-note{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint);}
+.dg-step.hot{border-color:var(--accent);} .dg-step.hot b{color:var(--accent);}
+.dg-step.gpu{border-color:var(--accent2);} .dg-step.gpu b{color:var(--accent2);}
+.dg-down{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  color:var(--ink-faint);
+  padding:7px 0 7px 18px;
+}
+
+table.data{
+  width:100%;
+  border-collapse:collapse;
+  margin:24px 0;
+  font-size:13.5px;
+}
+table.data caption{
+  text-align:left;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-soft);
+  margin-bottom:10px;
+  caption-side:top;
+}
+table.data th{
+  text-align:left;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-soft);
+  border-bottom:1px solid var(--rule-strong);
+  padding:8px 14px 8px 0;
+}
+table.data td{
+  border-bottom:1px solid var(--rule);
+  padding:10px 14px 10px 0;
+  vertical-align:top;
+}
+table.data td.num{font-family:"IBM Plex Mono",monospace;color:var(--accent2);font-weight:700;}
+table.data{table-layout:fixed;}
+table.data th:first-child, table.data td:first-child{width:38%;}
+table.data td{overflow-wrap:anywhere;}
+table.data td.label{font-weight:700;}
+
+sup.fnref{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10px;
+  color:var(--accent2);
+  margin-left:1px;
+}
+sup.fnref a{color:inherit;text-decoration:none;}
+.footnotes{
+  margin-top:34px;
+  padding-top:16px;
+  border-top:1px solid var(--rule);
+}
+.footnotes ol{
+  margin:0;
+  padding-left:1.3em;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  line-height:1.7;
+}
+.footnotes li{margin-bottom:8px;}
+.footnotes li:target,.footnotes li:target::marker{color:var(--accent);}
+
+.embed{margin:28px 0;}
+.embed img, .embed video{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.embed.portrait img, .embed.portrait video{max-width:320px; margin:0 auto;}
+.embed.portrait .embed-caption{max-width:320px; margin-left:auto; margin-right:auto; text-align:center;}
+.embed-caption{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); margin-top:8px;}
+
+.signature{
+  margin-top:56px;
+  padding-top:22px;
+  border-top:1px solid var(--rule);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  font-size:13px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+}
+
+.pagefoot{
+  max-width:760px;
+  margin:0 auto;
+  padding:30px 40px 60px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  text-align:center;
+  letter-spacing:.05em;
+}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:760px;
+  margin:0 auto;
+  padding:16px 40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.site-header .brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  opacity:.95;
+  transition:opacity .15s ease;
+}
+.site-header .brand:hover{opacity:1;}
+.site-header img{
+  height:40px;
+  width:auto;
+  display:block;
+}
+.site-nav{
+  display:flex;
+  gap:22px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  letter-spacing:.04em;
+}
+.site-nav a{
+  color:var(--ink-faint);
+  text-decoration:none;
+}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); background:var(--paper-raised);}
+  .pl-step .t{font-size:10.5px;}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+
+@media (max-width:600px){
+  .pipeline{grid-template-columns:repeat(2, 1fr); row-gap:6px;}
+  .pl-step:not(:last-child)::after{content:none;}
+  .page,.cover,.pagefoot{padding-left:20px;padding-right:20px;}
+  .pipeline{padding-left:16px;padding-right:16px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table, table tbody{display:block; width:100%;}
+  table tr{display:block; padding:9px 0; border-bottom:1px solid var(--rule);}
+  table tr:first-child:has(th), table tr:has(th){display:none;}
+  table th, table td{display:block; padding:0; border:0; white-space:normal;}
+  table td:first-child{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+  table td:nth-child(2){font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  table td.num{font-size:13.5px; color:var(--accent2); font-weight:700;}
+  table td.label{font-weight:700;}
+  .spec{padding:16px 16px 4px;}
+  .diagram{padding:14px;}
+  pre{padding:14px 14px;}
+  p code, li code, td code{overflow-wrap:anywhere;}
+}
+</style>
+<link href="https://meta-puppet.github.io/english/pipeline/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<article>
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../"><img alt="MetaPuppet" src="mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a href="../genesis/">Genesis</a>
+<a aria-current="page" href="./">Pipeline</a>
+<a href="stability/">Stability</a>
+<a href="../control/">Control</a>
+<a href="../experience/">Experience</a>
+<a href="../credits/">Credits</a>
+</nav>
+</div>
+</div>
+<section class="cover">
+<div class="cover-kicker">Software Notes — MetaPuppet</div>
+<h1>Getting Video from the Camera to VR</h1>
+<p class="sub">Human areas are extracted from stereo camera images and reflected in the appearance of avatars in VR. Implementation record from shooting to drawing.</p>
+<div class="cover-meta">
+<div><span>Author</span><b class="author"><img alt="" src="kosuke.jpg"/>Shimizu (in charge of software implementation)</b></div>
+</div>
+</section>
+<div class="pipeline">
+<div class="pl-step"><div class="n">01</div><div class="t">Stereo capture</div></div>
+<div class="pl-step"><div class="n">02</div><div class="t">H.264 encoding on Pi</div></div>
+<div class="pl-step"><div class="n">03</div><div class="t">Custom UDP to PC</div></div>
+<div class="pl-step"><div class="n">04</div><div class="t">Person matting on GPU</div></div>
+<div class="pl-step"><div class="n">05</div><div class="t">Pose and hand tracking</div></div>
+<div class="pl-step"><div class="n">06</div><div class="t">Stereo rendering in VR</div></div>
+</div>
+<div class="page">
+<section class="chapter" id="prologue">
+<div class="chapter-head">
+<span class="chapter-num">Prologue</span>
+<span class="chapter-stage">Overview</span>
+</div>
+<h2>Preface</h2>
+<p>At the time of the consultation, the only thing that had been decided upon was the concept of the experience. The outline of the person is extracted from the camera image and reflected on the avatar in VR. I was in charge of the software implementation. Vibe coding, which uses AI, was effective in repeating the implementation, but what we couldn't leave to AI was the parts that couldn't be determined without looking at the actual device and actual data, especially design decisions related to latency. Even if the appearance of a prototype can be created quickly, it takes a considerable amount of time to prepare it to make it work. This record is a transcription of the contents of the preparation.</p>
+<p>This pipeline consists of four main implementations. H.264 encoding on the stereo camera body and Raspberry Pi, unique UDP transmission to the PC, person masking and pose estimation using RVM (Robust Video Matting) on ​​the PC, and synthesis with Quest's hand tracking to stereo rendering to VR. If any one of these is missing, the experience will not be complete.</p>
+</section>
+<section class="chapter" id="ch01">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 01</span>
+<span class="chapter-stage">Latency Budget</span>
+</div>
+<h2>Where Latency Adds Up</h2>
+<p>If there is a discrepancy between your own movements and the avatar's movements, the experience changes from “the feeling of operating the device” to “the feeling of watching a video.”<sup class="fnref" id="fnref-ownership"><a href="#fn-ownership">[1]</a></sup> The pipeline passes through four sections with different characteristics, from shooting with a camera to rendering to VR. The transmission route from the camera, the network transmission route, the GPU inference route on the PC side, and the route to drawing. The causes of delays that occur in each section are different, and countermeasures are implemented separately.</p>
+<table class="data">
+<caption>Problems and implementation measures for each section</caption>
+<tr><th>section</th><th>problems that arise</th><th>Measures implemented</th></tr>
+<tr>
+<td class="label">camera → encode</td>
+<td>The frames of the two cameras are shifted. Encoding itself takes time. If you faithfully compress the background with high image quality, the amount of data to be transferred will increase.</td>
+<td>Match the left and right frames using the sensor timestamp. The encoder is set to prioritize speed by cutting off B frames and look-ahead, and also has a mechanism in place to change the strength of quantization for each macroblock based on the importance map of the human area (Chapter 2).</td>
+</tr>
+<tr>
+<td class="label">Encoding → Network</td>
+<td>Since it is UDP, packets may not arrive or the order may be changed.</td>
+<td>Only one missing frame is restored using XOR parity, and the process proceeds to the next frame without restoring any more (Chapter 3).</td>
+</tr>
+<tr>
+<td class="label">Network → GPU inference</td>
+<td>If you process frames that are delayed in reception, newer frames will arrive while they are being processed.</td>
+<td>The receiving side always assembles only the frame with the newest frame number and discards the old one (Chapter 3). Inference is also made to reside on the GPU, eliminating round trips to the CPU (Chapter 5).</td>
+</tr>
+<tr>
+<td class="label">GPU→Drawing</td>
+<td>Since it is stereo, transferring two textures per frame doubles the bandwidth and number of uploads.</td>
+<td>Send the left and right sides together as one texture, and read both eyes from one upload using single-pass instancing when drawing (Chapter 6).</td>
+</tr>
+<tr>
+<td class="label">entire interaction</td>
+<td>The estimation results (mask and posture) on the PC side may be corrupted or arrive late.</td>
+<td>Quest's hand and finger tracking will be used as a basis for gameplay, and the operation itself will not stop even if mask or pose estimation fails or delays (Chapter 5). Provides 10Hz feedback from receiver to transmitter to adjust transmit pacing (Chapter 3).</td>
+</tr>
+</table>
+<div class="footnotes">
+<ol>
+<li id="fn-ownership">The <a href="https://en.wikipedia.org/wiki/Rubber_hand_illusion">rubber hand illusion</a> describes the experience of feeling that something outside your body belongs to it. The more precisely vision and the sense of movement are synchronized, the stronger the illusion of body ownership can become. VR studies in which people embody someone else's body build on the same idea.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch02">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 02</span>
+<span class="chapter-stage">Stereo Capture / Encode</span>
+</div>
+<h2>Stereo Capture and Encoding on the Raspberry Pi</h2>
+<p>In the first place, the stereo camera itself was not purchased as an off-the-shelf product. A Raspberry Pi 5 is assembled with two camera modules for Raspberry Pi installed. For assembly, we referred to an industrial example (<a href="https://techietechnology.co.jp/2025/06/10/3d-stereo-vision-system-3d-industrial-raspberry-pi-5/">techietechnology.co.jp, 2025</a>) that configured stereo vision using Raspberry Pi 5 and a camera module. It follows the design principle that the Raspberry Pi 5 can process images from two inexpensive camera modules with a practical delay without using a dedicated global shutter camera or external synchronization hardware.</p>
+<div class="embed">
+<img alt="Homemade stereo camera. Rig with two Camera Module 3 Wide connected to Raspberry Pi 5 with flexible cables" loading="lazy" src="stereo_camera.jpg"/>
+<div class="embed-caption">Homemade stereo camera rig. Camera Module 3 Wide ×2 and Raspberry Pi 5</div>
+</div>
+<div class="embed">
+<video autoplay="" controls="" loop="" muted="" playsinline="" preload="metadata" src="stereo_camera_first_footage.mp4"></video>
+<div class="embed-caption">A record of when the image from the assembled stereo camera was delivered to the PC for the first time.</div>
+</div>
+<p>The Raspberry Pi has hardware dedicated to video compression, but I didn't use it this time, instead using a software encoder <a href="https://www.videolan.org/developers/x264.html">x264</a> that runs on the CPU. The reason is that I want to decide the compression force distribution for each location on the screen. In this experience, the only thing that requires high image quality is the part that shows the person, and it doesn't matter how rough the background is. H.264 video is compressed by dividing the screen into small blocks of 16 x 16 pixels, and x264 allows you to specify to each of these blocks from the outside, “be careful here, be rough here”. On the other hand, the Raspberry Pi's hardware encoder only allows you to select the target compression rate for the entire video, and does not accept specifications for individual locations on the screen. At the same time, all functions that increase delay at the cost of compression efficiency (B-frames that refer to later frames in time, look-ahead that determines compression after looking several frames ahead) are all turned off, and settings are made to give priority to faster transmission.</p>
+<p>The left and right images are combined using the Side-by-Side (SBS) method <sup class="fnref" id="fnref-interleave"><a href="#fn-interleave">[1]</a></sup>, in which each eye is placed on the left and right halves of a single image. The reason I chose SBS is mainly on the drawing side. The subsequent VR display shader can upload one texture for both eyes, reducing the amount of data to be transmitted and the number of texture transfers (see Chapter 6 for details).</p>
+<p>Another implementation is compression prioritization using lightweight <a href="https://github.com/PeterL1n/RobustVideoMatting">RVM</a> inference running on Raspberry Pi. Raspberry I also ran the RVM model (rvm_mobilenetv3_fp32.onnx) adjusted for the CPU on the Pi, and created an importance map for each 32 x 32 tile from the output.The design was such that the quantization was soft for person tiles and strong for background tiles, and the code was written to reflect this in the quantization offset for each H.264 macroblock. However, to be honest, as I am writing this manuscript, I am not completely confident that this was enabled stably on the actual machine at the venue until the end. Maintaining 30fps by installing two cameras, an encoder, and neural network inference on a Raspberry Pi 5 at the same time is a rather greedy request (I have not heard the opinion of the Raspberry Pi itself), and even if this part were to fail, it would simply fall back to "uniform priority for all tiles" and the video itself would not be interrupted.</p>
+<div class="spec">
+<div class="spec-title">Encoder implementation value</div>
+<table class="data">
+<tr><th>item</th><th>value</th></tr>
+<tr><td>codec</td><td class="num">H.264（libx264, software）</td></tr>
+<tr><td>preset</td><td class="num">ultrafast / zerolatency</td></tr>
+<tr><td>profile</td><td class="num">constrained-baseline, no B-frame</td></tr>
+<tr><td>frame packing</td><td class="num">Side-by-Side</td></tr>
+<tr><td>video stream</td><td class="num">1280×360 @ 30fps</td></tr>
+<tr><td>Mask stream (separate port)</td><td class="num">320×90, R8</td></tr>
+<tr><td>Encoding time (per eye)</td><td class="num">7.4〜7.6 ms</td></tr>
+<tr><td>RVM inference time on Pi</td><td class="num">Approximately 18 ms/frame (a little more than half the time of 30fps)</td></tr>
+</table>
+</div>
+<p>The importance map is updated using an exponential moving average (EMA) rather than being recreated every frame. This process prevents the quantization offset value from changing suddenly in one frame even if the person momentarily moves out of the frame.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-interleave">In addition to SBS, there is also an interleaving method that combines left and right images into one image, in which scanning lines are arranged alternately for the left and right eyes. Since we are using SBS this time, we will not discuss it in detail in the main text.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch03">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 03</span>
+<span class="chapter-stage">Custom UDP Transport</span>
+</div>
+<h2>The Custom UDP Video Protocol</h2>
+<p>The reason why TCP was not used to transmit video to the PC is because TCP is a mechanism that guarantees that “even if lost packets are retransmitted, they are delivered in order and in a complete format.” This guarantee is not suitable for the purpose of projecting your own moving body in real time. It is more important to receive the latest image of this moment, even if it is missing a little bit, than to receive a complete image from a while ago. For this reason, we have implemented a unique UDP-based framing protocol, and are designed so that the receiving side always assembles only the frame with the most advanced frame number.</p>
+<p>Packets on Ethernet are divided into chunks to fit within the 1500-byte MTU to avoid <a href="https://en.wikipedia.org/wiki/IP_fragmentation">IP fragmentation</a>. The receiving side discards packets with backward frame numbers, and in case the frame number returns to 0 due to a restart of the Raspberry Pi, etc., we also include a guard that resets the standard if a certain number of packets with backward numbers (15 times) occur in a row.</p>
+<div class="code-wrap">
+<div class="code-label">Packet header of MetaPuppetPacket.cs (56 bytes, chunked to fit within MTU 1500)</div>
+<pre>struct <span class="k">MetaPuppetPacketHeader</span> {
+  uint32 Magic; <span class="c">// 'MPQ1'</span>
+  ushort Version; <span class="c">// = 1</span>
+  Flags Flags; <span class="c">// Keyframe / FecPresent / MaskPresent etc.</span>
+  uint32 StreamId;
+  uint64 PacketSequence;
+  uint64 FrameSequence; <span class="c">// Receiver only sees advancement of this value</span>
+  uint64 CaptureTimestampNs; <span class="c">// Starting point of latency measurement</span>
+  uint32 ChunkIndex, ChunkCount;
+  uint32 PayloadSize, FrameSize;
+};</pre>
+</div>
+<p>For error correction, instead of the Reed-Solomon system <sup class="fnref" id="fnref-rs"><a href="#fn-rs">[1]</a></sup>, which can recover multiple defects, a single parity check code <sup class="fnref" id="fnref-parity"><a href="#fn-parity">[2]</a></sup> (single parity check code) that adds only one XOR parity per frame is used. In theory, if two or more chunks are missing, it cannot be restored, but parity calculation only needs to be done once with XOR, making implementation simple. In this application, where the lifetime of a single frame is on the order of milliseconds, we determined that it would be faster to simply receive the next frame as is, rather than spending time calculating complex error correction for multiple defects. I have nothing but respect for Galois field polynomial operations, but it's a bit too advanced for a life-prolonging treatment given to a frame with a lifespan of milliseconds. The degree of error correction (FEC group size) is also changed for each tile by reusing the importance map from Chapter 2.</p>
+<p>The receiving side counts at 10Hz how many packets have arrived and how many have been missed in the last few seconds, and sends the results back to the sending side. The sending side looks at this and makes adjustments by slowing down the speed of transmission if the line seems to be clogged, and slowing down if there is room. Another feature is a mechanism in which the receiver sends a retransmission request packet just once to the sender in the event that the next new frame overtakes the key frame (a special frame that can be used to restore video on its own; more on this later) before it arrives.</p>
+<div class="spec">
+<div class="spec-title">Transmission protocol implementation value</div>
+<table class="data">
+<tr><th>item</th><th>value</th></tr>
+<tr><td>transport</td><td class="num">UDP (proprietary framing)</td></tr>
+<tr><td>Payload limit per packet</td><td class="num">1444 bytes</td></tr>
+<tr><td>error correction</td><td class="num">Single missing XOR parity</td></tr>
+<tr><td>Frame reconstruction policy</td><td class="num">Only the latest frame numbers are used</td></tr>
+<tr><td>resync guard</td><td class="num">Reset the standard by going backwards 15 times in a row</td></tr>
+<tr><td>Key frame resend</td><td class="num">Request retransmission only once</td></tr>
+<tr><td>feedback frequency</td><td class="num">10 Hz</td></tr>
+</table>
+</div>
+<div class="footnotes">
+<ol>
+<li id="fn-rs">A type of <a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction">error correction code</a>. A method that adds "extra data" created by polynomial calculations to the original data, so that even if some part is missing, the original data can be restored from the rest. It is also used to prevent scratches on QR codes and CDs/DVDs. The more data you add, the more loss you can tolerate. This time, by deciding that only one missing item is restored, this polynomial calculation is simplified to one XOR operation (a simple operation that compares corresponding bits and sets them to 1 if they are different).</li>
+<li id="fn-parity">The simplest form of error correction (<a href="https://en.wikipedia.org/wiki/Parity_bit">parity bit</a>). A method that sends an extra piece of something like a “total” that is obtained by combining multiple pieces of data using XOR. If only one chunk is missing, by XORing the total with all the rest, you can restore the missing one. If two or more pieces are missing, it cannot be restored.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch04">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 04</span>
+<span class="chapter-stage">GPU Segmentation Backend</span>
+</div>
+<h2>Speeding Up Inference with TensorRT</h2>
+<p>To extract the person from the stereo camera feed in real time, MetaPuppet's PC VR pipeline converts RVM to <a href="https://onnx.ai/">ONNX</a><sup class="fnref" id="fnref-onnx"><a href="#fn-onnx">[1]</a></sup> and runs it using <a href="https://onnxruntime.ai/">ONNX Runtime</a> with the <a href="https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html">CUDA Execution Provider</a>. This worked smoothly until I switched development to a laptop with an RTX 5070 (Blackwell), <a href="https://x.com/aerhgub/status/2092930376822050967?s=20">a GPU with a reputation for catching fire</a>. The move to Blackwell exposed errors in several parts of the pipeline. Here's how I tracked them down.</p>
+<div class="embed">
+<blockquote class="twitter-tweet" data-dnt="true" data-media-max-width="560" data-theme="dark">
+<a href="https://twitter.com/jun1228909/status/2093972652134404217"></a>
+</blockquote>
+<script async="" charset="utf-8" src="https://platform.twitter.com/widgets.js"></script>
+</div>
+<p>Convolutional layers (4 locations) of the type depthwise convolution in the RVM refiner part started to fail inside cuDNN Frontend<sup class="fnref" id="fnref-cudnnfe"><a href="#fn-cudnnfe">[2]</a></sup>. The error message is short and contains few clues as to the cause. This type of one-line error has the characteristic that it appears to contain information when you read it, but it actually doesn't tell you anything other than "failed." Since he has no choice but to rely only on scant circumstantial evidence, he builds up a theory. The first hypothesis I made was that “depthwise is a special form of group conv, so perhaps the kernel for the new GPU generation has not yet been prepared.” In retrospect, it was a premature assumption.</p>
+<p>Based on this hypothesis, we devised a countermeasure. There were options to wait for a fix on the GPU library side, or to redesign the model to not use this type of layer itself, but that would likely lead to the same problem again in the next GPU generation. Therefore, we chose to manually rewrite the four failing depthwise convolutions to a more primitive combination of operations (padding → slice → multiplication → addition) that does not go through cuDNN's execution plan selection. The 3x3 depthwise convolution is a roundabout method that was written according to the direct definition of cutting out slices for each of the nine tap positions from the padded input, multiplying them by the corresponding weights, and adding the nine pieces together, but the formula was manually checked one term at a time.</p>
+<p>After rewriting, it is necessary to check whether the result is exactly the same as the original calculation. Matched with two types of accuracy. One is regular 32-bit floating point (fp32), and the other is 16-bit floating point (fp16), which uses reduced precision to speed up inference. As a result, in fp32, all of the outputs matched perfectly, and even in fp16, the alpha channel (pha) representing the silhouette of the person and the internal states (r1 to r4, which are like memories that RVM maintains to suppress flickering in the video) that carry over the information from the previous frame to the next frame perfectly matched.</p>
+<p>For a while, I thought this was the solution.</p>
+<h3>misjudged the scope of the problem</h3>
+<p>When I applied the patch and tested it again, this time it failed with the same symptoms, even the normal convolutional layer, not depthwise or anything. The error is a single line (<code>CUDNN_FE failure 7: GRAPH_EXECUTION_FAILED</code>) that says "Graph execution failed." cuDNN 9.x is designed to declare a combination of operations as a graph, rather than directly hitting each convolution, and then lets cuDNN Frontend itself select the execution plan (which kernel, which tile division, which algorithm to run). This failure showed that the execution plan selection phase itself was not yet fully developed for this generation of GPUs.</p>
+<p>It wasn't that depthwise was special, but cuDNN Frontend's execution plan selection itself was unstable in a broader range. The method of detouring each node individually is definitely effective for the areas that are hit, but has no effect on the areas that are not hit. We have also found reports elsewhere that YOLOv3, YOLOv4, and MobileNet V1 fail with the same symptoms after upgrading to a combination of CUDA 12.8 and cuDNN 9.8. At least it turns out that this is not an environment-specific phenomenon.</p>
+<div class="diagram">
+<div class="diagram-title">History of inference backends</div>
+<div class="dg-col">
+<div class="dg-step hot"><b>ONNX Runtime CUDA EP (via cuDNN 9)</b><small>Execution plan selection is unstable in Blackwell generation. depthwise conv followed by normal conv also fails <span class="code-note">GRAPH_EXECUTION_FAILED</span></small></div>
+<div class="dg-down">↓ Switch to EP without going through cuDNN</div>
+<div class="dg-step"><b>TensorRT-RTX EP</b><small>Conv failure resolved. Parser cannot parse dynamic Resize that depends on downsample_ratio and fails</small></div>
+<div class="dg-down">↓ Burn the model side into a static shape</div>
+<div class="dg-step"><b>ONNX specialized for static shapes</b><small>Resize passes. Out-of-range access when Expand in recursive states r1 to r4 is converted to Slice (bug on builder side)</small></div>
+<div class="dg-down">↓ Stop using EP and call SDK directly</div>
+<div class="dg-step gpu"><b>TensorRT 11.2.1 Direct call (current)</b><small>Cast shape tensor from INT64 to INT32 to pass through parser. batch=2・Build engine with fixed resolution</small></div>
+</div>
+</div>
+<h3>Switching to TensorRT-RTX and new failures there</h3>
+<p>I changed my mind and decided to avoid CUDA EP via cuDNN and use TensorRT-RTX EP, which NVIDIA provides for client RTX. The destination for passing tensors placed on the GPU, which had previously been hard-coded using a CUDA-specific specification, was rewritten to a specification that can be used commonly by any execution provider, and a step-by-step fallback of AUTO → TensorRT-RTX → CUDA → CPU was also provided.</p>
+<p>After switching to TensorRT-RTX, the cuDNN-derived Conv failure was resolved. However, this time, the TensorRT-RTX parser was unable to parse the RVM's internal Resize node (which is dynamically sized depending on the runtime input downsample_ratio to bridge the resolution between the backbone and the refiner), causing it to fail with another error indicating an internal shape check inconsistency. TensorRT parsers have difficulty handling the Resize size, whose value is determined at runtime, and this time as well, we were stuck with the constraint that it could not be analyzed unless the scales/sizes input was a graph-level constant (initializer).</p>
+<p>A clue to this was found relatively quickly. Since MetaPuppet actually only infers at a fixed resolution per session, there was no need to pass downsample_ratio as a runtime input in the first place. I wrote a model conversion script and baked this value into the model as a constant, replacing the internal Resize with a completely static shape.</p>
+<p>Although the Resize problem was resolved, I ran into an internal problem on the TensorRT-RTX side called "out-of-range access" in the part that broadcasts RVM's recursion states r1 to r4, which could not be resolved by modifying the model side. TensorRT's Expand may be internally converted to the Slice layer, and it is reasonable to view out-of-bounds access there as a problem on the builder side rather than the parser. It has become clear that there are limits to the method of continuously avoiding individual failure points on the model side each time.</p>
+<h3>Confirmation of CPU fallback and final implementation</h3>
+<p>The GPU-resident CUDA paths that were being investigated in parallel were exhibiting symptoms that were difficult to diagnose, such as failing silently without even generating an exception. I never thought that I would be taught that software that crashes with an error is sincere, and that software that does nothing but pretends to have completed successfully. Even if a dedicated diagnostic API is provided, the failure seems to be caused by something other than Ort::Exception<sup class="fnref" id="fnref-ortexc"><a href="#fn-ortexc">[3]</a></sup> (the type of error thrown internally by ONNX Runtime), and the cause has not yet been determined. At this point, we once confirmed on Unity that the safe fallback to CPU inference worked reliably. The result is a log (<code>FramesInferred=14, FramesSkipped=0, LastStatus=OK</code>) that means “14 frames were successfully inferred, 0 frames were skipped due to failure, and the final status was normal”, and the cropping of the person on the screen was also displayed correctly.</p>
+<p>The current implementation uses a route that directly calls the API of the regular TensorRT SDK <sup class="fnref" id="fnref-trtrtxdiff"><a href="#fn-trtrtxdiff">[4]</a></sup> (11.2.1 series), rather than TensorRT-RTX. Specialize ONNX to completely static shapes (batch=2, fixed resolution of 640×360 or 512×288, number of channels and space size of recursion states r1 to r4 are all fixed numerically), and use onnx.checker and shape Through inference, we match the output of the original model and the specialized model (including not only pha but also r1 to r4) on the CPU, check the engine build with a standalone executable file that does not go through Unity, and then proceed to the interoperability code between the GPU drawing backend (Direct3D 11, detailed in Chapter 5) and CUDA.</p>
+<p>While searching the NVIDIA developer forum during this process, I found a post from a fellow user who was trying to parse the same RVM model with Jetson and was stumbling at the exact same point. It's heartening to know that there are people somewhere in the world who are facing the same error message late at night. According to the report, fixing the downsample_ratio alone was not enough, and unless the shape tensor <sup class="fnref" id="fnref-shapetensor"><a href="#fn-shapetensor">[5]</a></sup> was explicitly cast from INT64 to INT32, TensorRT's parser would crash with the error "network input that is shape tensor must have type Int32". Based on this information, we added INT32 processing to the model conversion script and completed the implementation.</p>
+<div class="spec">
+<div class="spec-title">Final configuration of the inference backend</div>
+<table class="data">
+<tr><th>item</th><th>value</th></tr>
+<tr><td>GPU backend</td><td class="num">TensorRT 11.2.1 Direct calls</td></tr>
+<tr><td>model shape</td><td class="num">batch=2, 640×360 / 512×288 fixed</td></tr>
+<tr><td>shape tensor type</td><td class="num">Cast from INT64 to INT32</td></tr>
+<tr><td>Fallback order (ONNX Runtime route)</td><td class="num">AUTO → TensorRT-RTX → CUDA → CPU</td></tr>
+<tr><td>Verification method</td><td class="num">onnx.checker + shape inference<br/> Output matching with original model (pha, r1~r4)</td></tr>
+</table>
+</div>
+<p>Verification in the exhibition scene after replacing it with TensorRT's direct call. A comparison with before the improvement is provided in Chapter 5.</p>
+<div class="embed">
+<img alt="Verification of RVM replaced with TensorRT direct call. A cut-out figure is waving his arms on a pedestal in an exhibition scene." loading="lazy" src="rvm_tensorrt.gif"/>
+<div class="embed-caption">RVM after transitioning to TensorRT 11.2.1 direct calls. Verification in exhibition scene</div>
+</div>
+<p>Even after the inference started working, the TDR crash that occurred with the GPU immediately after changing scenes remained on the exhibition PC. The pursuit and the process of erasing the spikes while keeping D3D11 and CUDA coexisting are lengthy, so I have written them separately in the <a href="stability/">Addendum “Implementation to prevent the GPU from dropping”</a>.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-onnx"><a href="https://onnx.ai/">ONNX</a> is a standard for converting and saving models created using different learning frameworks such as PyTorch and TensorFlow into one common file format. By converting to ONNX, you are not tied to the framework you used for training and can run it with another inference engine like ONNX Runtime.</li>
+<li id="fn-cudnnfe">cuDNN Frontend is the C++/Python API layer of cuDNN (deep learning calculation library for GPU) provided by NVIDIA. Unlike traditional APIs that call individual operations each time, the design is such that operations are declared as a graph and the library selects the optimal kernel (execution plan) that matches the graph at runtime (<a href="https://docs.nvidia.com/deeplearning/cudnn/frontend/latest/">NVIDIA cuDNN Frontend documentation</a>).</li>
+<li id="fn-ortexc">C++ exception class thrown when ONNX Runtime detects an error internally. Normally, if you catch this, you can get the error contents as a string, but this time the CUDA pass failed silently without going through this exception (not a crash, but appeared to have completed normally), so it was difficult to isolate the cause.</li>
+<li id="fn-trtrtxdiff">TensorRT has two different implementations: the traditional TensorRT SDK, which targets a wide range of environments including GPUs for data centers, and TensorRT-RTX, which can be distributed lightweight and focused on client GPUs such as GeForce RTX. Although TensorRT-RTX is easy to bundle with apps, it is new and the range of parser support is still limited. This time, in order to avoid problems with the parser on the TensorRT-RTX side, I settled on the route of directly using the conventional TensorRT SDK, which has a wide range of support.</li>
+<li id="fn-shapetensor">In TensorRT, the contents of a tensor may not represent "data" such as pixel values, but the shape (size) of another tensor itself, and this is called a shape tensor. ONNX's standard integer type is INT64, but TensorRT's parser only accepts INT32 for shape tensors, so an explicit cast is required.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch05">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 05</span>
+<span class="chapter-stage">GPU-Resident Pipeline / Pose / Hand Tracking</span>
+</div>
+<h2>Combining Person Matting, Pose Estimation, and Hand Tracking</h2>
+<p>After cutting out the body, it is necessary to estimate the positions of the joints and skeleton in order to convert the silhouette into the movements of the avatar in VR. Here we are using <a href="https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose">RTMPose</a> instead of MediaPipe. The reason is that RTMPose uses the same D3D11<sup class="fnref" id="fnref-d3d11"><a href="#fn-d3d11">[1]</a></sup>/CUDA interoperability framework as RVM, and can perform processing while residing on the GPU without returning the image to the CPU. RTMPose does not always receive the RVM mask, but only after making sure that the eye IDs (left and right) match, that the mask is not from a future frame, and that it is within the allowed lag. If this condition is not met, the mask is not used, but the experience itself does not stop because Quest's hand/palm tracking is always treated as positive for gameplay and operates independently of the results of RVM and RTMPose. The mask and pose estimation are just layers used to synthesize the appearance, and are not used to determine the operation itself.</p>
+<p>Before settling on the configuration described in this chapter, RVM, which had just started running, still had this accuracy. The mask was chipped in large chunks, and when I waved my hand, the outline didn't follow at all.</p>
+<div class="embed portrait">
+<video autoplay="" controls="" loop="" muted="" playsinline="" preload="metadata" src="rvm_early_mask_1.mp4"></video>
+<div class="embed-caption">RVM before improvement. Whole chunks of the mask are missing, and the outline does not follow the movements of the hand.</div>
+</div>
+<p>The following comparison is a video of the same unimproved RVM composited into a Unity scene, and an exhibition scene after settling on the structure of this chapter (direct TensorRT invocation, GPU resident, blurred boundaries, and EMA in the time direction). Even when I wave my arm, the outline follows, and the mask no longer breaks off in chunks.</p>
+<div class="embed">
+<img alt="Left: RVM before improvement (CUDA EP). The mask is chipped and flickers. Right: Current implementation of TensorRT direct calls. The outline follows the movement of the arm" loading="lazy" src="rvm_before_after.gif"/>
+<div class="embed-caption">Left: Before improvement (ONNX Runtime CUDA EP). Right: Exhibition scene in the current configuration</div>
+</div>
+<p>The key to GPU-resident pipelines is to avoid round-trips to the CPU. The NV12<sup class="fnref" id="fnref-nv12-ch5"><a href="#fn-nv12-ch5">[2]</a></sup> video coming from the camera is resized, color space converted (BT.709), normalized, and NCHW<sup class="fnref" id="fnref-nchw"><a href="#fn-nchw">[3]</a></sup> sorted using D3D11's compute shader, and then passed directly to the CUDA interoperable buffer and transferred to the ONNX Permanently bound to Runtime's IoBinding<sup class="fnref" id="fnref-iobinding"><a href="#fn-iobinding">[4]</a></sup>. The two left and right stereo images are put into one inference as batch=2, and the recursion states (r1 to r4) are managed in separate lanes for each eye, and the states are swapped only when the entire batch is successful. The alpha channel of the inference result returns to the D3D11 side, undergoes boundary blurring and temporal EMA, and is passed directly to the shader. In this path, the number of bytes is zero for both the source video host-to-device transfer and the mask device-to-host transfer.</p>
+<p>Since the left and right cameras are not physically aligned perfectly, it is necessary to adjust the mask for one eye by shifting it by a few pixels relative to the other so that they overlap. I have also created a debug screen to manually correct this, and while sending the pixel-by-pixel deviation using the arrow keys, I adjust the left and right sides while looking at the RVM mask (outline of the person).</p>
+<div class="embed">
+<img alt="Debug screen for stereo alignment. Adjusting the right eye mask while shifting it by -20.30px in X and -3.62px in Y." loading="lazy" src="rvm_stereo_align.png"/>
+<div class="embed-caption">Debug screen for stereo alignment. Use the arrow keys to shift the right eye mask pixel by pixel and match the left and right RVM outputs.</div>
+</div>
+<div class="diagram">
+<div class="diagram-title">GPU resident pipeline. 0 bytes transferred to and from the host during the entire interval</div>
+<div class="dg-col">
+<div class="dg-step"><b>Decoded video (NV12)</b><small>Two left and right images. Receive it as a D3D11 texture on the GPU</small></div>
+<div class="dg-down">↓ D3D11 compute shader</div>
+<div class="dg-step"><b>Preprocessing</b><small>Resizing, BT.709 color conversion, normalization, and NCHW sorting in one pass</small></div>
+<div class="dg-down">↓ CUDA interoperable buffer (fixed with IoBinding)</div>
+<div class="dg-step hot"><b>RVM inference (batch=2)</b><small>Infer left and right at once. Recursion states r1 to r4 are managed independently for each eye</small></div>
+<div class="dg-down">↓ Return to D3D11 (in GPU)</div>
+<div class="dg-step"><b>Mask post-processing</b><small>Boundary blur and temporal EMA</small></div>
+<div class="dg-down">↓ Only when conditions (eye ID match, freshness, allowable lag) are met</div>
+<div class="dg-step gpu"><b>RTMPose</b><small>Pose estimation. If the mask does not meet the conditions, it will work without the mask</small></div>
+</div>
+</div>
+<p>For the same combination (ring buffer slot and recursive state bank address pair), we attempt to capture CUDA Graph<sup class="fnref" id="fnref-cudagraph"><a href="#fn-cudagraph">[5]</a></sup>, and if successful, we can reduce the calling overhead. If the capture fails, it will automatically fall back to the normal call via IoBinding. The ring buffer is also limited to 2 slots to ensure that the latest frame is always processed.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-d3d11">Direct3D 11. One of the APIs for issuing drawing commands to the GPU on Windows. It is also used as Unity's drawing backend, and the output of the video decoder and the inference results of RVM are exchanged as memory (texture) on the GPU managed by Direct3D 11. Interoperability with CUDA refers to a mechanism that allows this Direct3D 11 side memory to be directly read and written from the CUDA side.</li>
+<li id="fn-nv12-ch5">A format that records video colors by dividing them into luminance (Y) and color difference (UV). Color difference is thinned out to half the resolution of luminance, and the amount of data is reduced by that amount, so it is used as standard in video decoding and encoding (we will touch on this again in Chapter 6).</li>
+<li id="fn-nchw">One of the byte order conventions for arranging images. This means that they are arranged in the order of N (number of images) → C (number of color channels) → H (vertical) → W (horizontal), which is the standard arrangement that the neural network inference engine receives as an input tensor. On the other hand, normal image files and shaders are often handled in H×W×C order (HWC, RGB is arranged for each pixel), and this sorting is necessary before passing it to inference.</li>
+<li id="fn-iobinding">One of the functions of ONNX Runtime. Normally, input/output data is copied between the CPU and GPU each time inference is made, but by using IoBinding, a specific memory address on the GPU can be fixed as input/output, and copying can be omitted.</li>
+<li id="fn-cudagraph">For each inference, dozens of kernel calls and memory operations on the GPU are actually executed in sequence. <a href="https://developer.nvidia.com/blog/cuda-graphs/">CUDA Graph</a> is a mechanism that records (captures) this series of calls as a graph structure of "nodes and their dependencies" only once, and then reproduces the entire graph with a single call from the CPU side. The name "graph" refers to this dependency structure itself.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch06">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 06</span>
+<span class="chapter-stage">VR Display Shader</span>
+</div>
+<h2>Rendering Both Eyes, Converting Color, and Compositing in One Shader</h2>
+<p>The shader (MetaPuppetSbsUnlit.shader) displayed on the VR headset has also been devised to reduce the amount of data transmitted. The SBS (Side-by-Side) packing mentioned in Chapter 2 is compatible with Unity's <a href="https://docs.unity3d.com/Manual/SinglePassInstancing.html">single-pass instancing</a> (a method that processes both eyes in one draw call). By simply uploading a single texture to the GPU once, it can cover both eyes by shifting only half of the U of the UV coordinates when drawing each side, eliminating the need to transfer and bind textures for both eyes separately.</p>
+<div class="code-wrap">
+<div class="code-label">MetaPuppetSbsUnlit.shader UV selection for each eye</div>
+<pre>float2 uv = float2(
+    eyeUv.x * <span class="k">0.5</span> + saturate(eye) * <span class="k">0.5</span>,
+    eyeUv.y
+);
+<span class="c">// eye is unity_StereoEyeIndex (for single-pass instancing)</span>
+<span class="c">// or _MetaPuppetEyeIndex (explicitly specified during testing)</span></pre>
+</div>
+<p>This shader also packs two operations into the same fragment pass. One path is to receive not only the decoded RGBA but also the YUV NV12<sup class="fnref" id="fnref-nv12"><a href="#fn-nv12">[1]</a></sup> plane directly output by the decoder (luminance R8 plane and chrominance RG8 plane) and convert it to RGB inside the shader using the BT.601<sup class="fnref" id="fnref-bt601"><a href="#fn-bt601">[2]</a></sup> conversion formula. This allows you to omit the step of performing color conversion on the CPU side. The other is that the RVM output alpha is received as an external mask texture, and the background composition, including switching between chroma key and matte key, is completed within this pass. The three processes of drawing both eyes, color space conversion, and human compositing are combined into one Unlit fragment shader in order to minimize the number of draw calls and texture uploads.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-nv12">A format that records video colors by dividing them into luminance (Y) and color difference (UV) rather than RGB. The human eye is more sensitive to changes in brightness than to changes in color, so even if the resolution of color difference is reduced to half of the brightness, there will be almost no visible deterioration. Since the amount of data can be reduced by this thinning amount, it is standardly used in video decoding and encoding.</li>
+<li id="fn-bt601">A standard that defines the coefficients for converting a pair of Y and UV to RGB. In the field of broadcasting and distribution, two types are widely used: <a href="https://en.wikipedia.org/wiki/Rec._601">BT.601</a> (for standard definition) and <a href="https://en.wikipedia.org/wiki/Rec._709">BT.709</a> (for high definition), with slightly different coefficients. The color tone changes depending on which standard's coefficients are used, so it is necessary to match the standards on the decoder and shader sides.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="epilogue">
+<div class="chapter-head">
+<span class="chapter-num">Epilogue</span>
+<span class="chapter-stage">Summary</span>
+</div>
+<h2>Afterword</h2>
+<p>All of the measures recorded so far are nothing more than minor tuning when viewed individually. The importance map on the camera side is used to prioritize compression and FEC, the receiver side always accepts only the latest frame, the GPU-resident pipeline eliminates round trips to the CPU, and the SBS packing combines texture transfer for both eyes into one transfer. These are implemented as individual measures for each of the four sections listed in the table in Chapter 1. Each one is unassuming, and it's not a technology that you can be proud of on its own. However, I think the troublesome aspect of this kind of implementation is that if you accumulate these simple measures for 4 sections and cut corners in even one area, the entire experience will fall from “the feeling of operating the game” to “the feeling of watching a video.”</p>
+<p>I hope this record happens to be caught in a late night search by someone who is also being hit by the GPU generation change.</p>
+<p>Addendum: <a href="stability/">Implementation to prevent the GPU from dropping</a> — A record of how the D3D11 TDR crash that occurred on the exhibition PC was eliminated by prewarming and locking D3D11/CUDA.</p>
+<div class="signature">
+<div>MetaPuppet — Software Implementation Notes</div>
+<div>Shimizu</div>
+</div>
+</section>
+</div>
+<div class="pagefoot">MetaPuppet</div>
+</article>
+</body>
+</html>

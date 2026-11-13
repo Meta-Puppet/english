@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>How a Pinch Moves the Other Arm — MetaPuppet</title>
+<meta content="Unity detects a pinch, sends the input to a Raspberry Pi over UDP, and drives a cable spool that lifts the participant’s other forearm." name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="How a Pinch Moves the Other Arm — MetaPuppet" property="og:title"/>
+<meta content="Unity detects a pinch, sends the input to a Raspberry Pi over UDP, and drives a cable spool that lifts the participant’s other forearm." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/control/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/control/mp_logo.png" property="og:image"/>
+<link href="mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  /* dark-first, to match the MetaPuppet main site */
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent-soft:#3a2530;
+  --accent2:#6fbfc4;
+  --accent2-soft:#193638;
+  --code-bg:#0a0a0b;
+  --code-ink:#e7e6e0;
+  --code-accent:#e78fb3;
+  --code-accent2:#6fbfc4;
+}
+
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6;
+    --paper-raised:#f2f0eb;
+    --ink:#171a1d;
+    --ink-soft:#4b5459;
+    --ink-faint:#8b9296;
+    --rule:#d8d5cd;
+    --rule-strong:#b9b5aa;
+    --accent:#b8500e;
+    --accent-soft:#e8c7a9;
+    --accent2:#14646b;
+    --accent2-soft:#bcdadc;
+    --code-bg:#171a1d;
+    --code-ink:#e7e6e0;
+    --code-accent:#e0954f;
+    --code-accent2:#6fbfc4;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6;
+  --paper-raised:#f2f0eb;
+  --ink:#171a1d;
+  --ink-soft:#4b5459;
+  --ink-faint:#8b9296;
+  --rule:#d8d5cd;
+  --rule-strong:#b9b5aa;
+  --accent:#b8500e;
+  --accent-soft:#e8c7a9;
+  --accent2:#14646b;
+  --accent2-soft:#bcdadc;
+  --code-bg:#171a1d;
+  --code-ink:#e7e6e0;
+  --code-accent:#e0954f;
+  --code-accent2:#6fbfc4;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:760px;
+  margin:0 auto;
+  padding:26px 40px 90px;
+}
+
+.cover{
+  max-width:760px;
+  margin:0 auto;
+  padding:76px 40px 60px;
+  border-bottom:1px solid var(--rule);
+}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:22px;
+}
+.cover-kicker::before{
+  content:"";
+  width:26px;height:1px;
+  background:var(--accent);
+  display:inline-block;
+}
+.cover h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:800;
+  font-size:clamp(32px,5.6vw,48px);
+  line-height:1.4;
+  margin:0 0 20px;
+  text-wrap:balance;
+  letter-spacing:.01em;
+}
+.cover h1 em{
+  font-style:normal;
+  color:var(--accent);
+}
+.cover .sub{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  margin:0 0 34px;
+}
+.cover-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:28px 40px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+  border-top:1px solid var(--rule);
+  padding-top:22px;
+}
+.cover-meta div span{
+  display:block;
+  color:var(--ink-faint);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cover-meta div b{
+  color:var(--ink);
+  font-weight:700;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:13.5px;
+}
+.cover-meta .author{display:inline-flex; align-items:center; gap:8px;}
+.cover-meta .author img{width:22px; height:22px; border-radius:50%; object-fit:cover; display:block; filter:grayscale(1);}
+
+.pipeline{
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 20px 26px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(82px, 1fr));
+  align-items:stretch;
+  gap:0;
+  overflow:visible;
+  border-bottom:1px solid var(--rule);
+  background:var(--paper-raised);
+}
+.pl-step{
+  min-width:0;
+  padding:6px 9px 6px 4px;
+  position:relative;
+  font-family:"IBM Plex Mono",monospace;
+}
+.pl-step .n{
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.pl-step .t{
+  font-size:11px;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  font-weight:700;
+  margin-top:3px;
+  line-height:1.4;
+}
+.pl-step:not(:last-child)::after{
+  content:"→";
+  position:absolute;
+  right:-2px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-faint);
+  font-size:13px;
+}
+
+.chapter{scroll-margin-top:80px;}
+.chapter{
+  border-top:1px solid var(--rule-strong);
+  padding-top:46px;
+  margin-top:10px;
+}
+.chapter:first-of-type{border-top:none;}
+.chapter-head{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:8px;
+}
+.chapter-num{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:13px;
+  color:var(--accent2);
+  letter-spacing:.05em;
+  white-space:nowrap;
+}
+.chapter-stage{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-faint);
+}
+.chapter h2{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:700;
+  font-size:26px;
+  margin:6px 0 30px;
+  text-wrap:balance;
+}
+.lede{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  border-left:3px solid var(--accent);
+  padding-left:18px;
+  margin:0 0 34px;
+}
+
+.chapter h3{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:18.5px;
+  font-weight:700;
+  margin:38px 0 14px;
+}
+.chapter p{margin:0 0 20px;}
+
+.spec{
+  background:var(--paper-raised);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--accent2);
+  border-radius:2px;
+  padding:20px 22px 6px;
+  margin:28px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.spec-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--accent2);
+  margin-bottom:10px;
+}
+
+.code-wrap{
+  margin:24px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.code-label{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  color:var(--ink-faint);
+  margin-bottom:6px;
+  letter-spacing:.05em;
+}
+pre{
+  background:var(--code-bg);
+  color:var(--code-ink);
+  padding:18px 20px;
+  border-radius:3px;
+  overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  line-height:1.7;
+  margin:0;
+}
+pre .k{color:var(--code-accent2);}
+pre .c{color:var(--code-accent);}
+code{
+  font-family:"IBM Plex Mono",monospace;
+  background:var(--paper-raised);
+  padding:1px 5px;
+  border-radius:2px;
+  font-size:.9em;
+  border:1px solid var(--rule);
+}
+
+.chapter a, .cover a, .footnotes a{
+  color:var(--accent2);
+  text-decoration-color:var(--rule-strong);
+  text-underline-offset:2px;
+}
+.chapter a:visited, .cover a:visited, .footnotes a:visited{color:var(--accent2);}
+.chapter a:hover, .cover a:hover, .footnotes a:hover{color:var(--accent);}
+
+.diagram{
+  margin:30px 0;
+  border:1px solid var(--rule);
+  background:var(--paper-raised);
+  padding:22px;
+  page-break-inside:avoid;
+}
+.diagram-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-faint);
+  margin-bottom:14px;
+}
+.dg-col{display:flex; flex-direction:column;}
+.dg-step{
+  border:1px solid var(--rule-strong);
+  background:var(--paper);
+  border-radius:2px;
+  padding:12px 16px;
+  line-height:1.6;
+}
+.dg-step b{display:block; font-size:13.5px; color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-step small{display:block; color:var(--ink-soft); font-size:12px; margin-top:2px;}
+.dg-step .code-note{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint);}
+.dg-step.hot{border-color:var(--accent);} .dg-step.hot b{color:var(--accent);}
+.dg-step.gpu{border-color:var(--accent2);} .dg-step.gpu b{color:var(--accent2);}
+.dg-down{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  color:var(--ink-faint);
+  padding:7px 0 7px 18px;
+}
+
+table.data{
+  width:100%;
+  border-collapse:collapse;
+  margin:24px 0;
+  font-size:13.5px;
+}
+table.data caption{
+  text-align:left;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-soft);
+  margin-bottom:10px;
+  caption-side:top;
+}
+table.data th{
+  text-align:left;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-soft);
+  border-bottom:1px solid var(--rule-strong);
+  padding:8px 14px 8px 0;
+}
+table.data td{
+  border-bottom:1px solid var(--rule);
+  padding:10px 14px 10px 0;
+  vertical-align:top;
+}
+table.data td.num{font-family:"IBM Plex Mono",monospace;color:var(--accent2);font-weight:700;}
+table.data{table-layout:fixed;}
+table.data th:first-child, table.data td:first-child{width:38%;}
+table.data td{overflow-wrap:anywhere;}
+table.data td.label{font-weight:700;}
+
+sup.fnref{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10px;
+  color:var(--accent2);
+  margin-left:1px;
+}
+sup.fnref a{color:inherit;text-decoration:none;}
+.footnotes{
+  margin-top:34px;
+  padding-top:16px;
+  border-top:1px solid var(--rule);
+}
+.footnotes ol{
+  margin:0;
+  padding-left:1.3em;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  line-height:1.7;
+}
+.footnotes li{margin-bottom:8px;}
+.footnotes li:target,.footnotes li:target::marker{color:var(--accent);}
+
+.signature{
+  margin-top:56px;
+  padding-top:22px;
+  border-top:1px solid var(--rule);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  font-size:13px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+}
+
+.pagefoot{
+  max-width:760px;
+  margin:0 auto;
+  padding:30px 40px 60px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  text-align:center;
+  letter-spacing:.05em;
+}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:760px;
+  margin:0 auto;
+  padding:16px 40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.site-header .brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  opacity:.95;
+  transition:opacity .15s ease;
+}
+.site-header .brand:hover{opacity:1;}
+.site-header img{
+  height:40px;
+  width:auto;
+  display:block;
+}
+.site-nav{
+  display:flex;
+  gap:22px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  letter-spacing:.04em;
+}
+.site-nav a{
+  color:var(--ink-faint);
+  text-decoration:none;
+}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+.embed{margin:28px 0;}
+.embed img{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.embed-caption{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); margin-top:8px;}
+.embed.portrait img{max-width:320px; margin:0 auto;}
+.embed.portrait .embed-caption{max-width:320px; margin-left:auto; margin-right:auto; text-align:center;}
+
+.safety{
+  background:var(--accent-soft);
+  border:1px solid var(--accent);
+  border-radius:2px;
+  padding:18px 22px;
+  margin:28px 0;
+  page-break-inside:avoid;
+}
+.safety-title{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:8px;
+  font-weight:700;
+}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); background:var(--paper-raised);}
+  .pl-step .t{font-size:10.5px;}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+
+@media (max-width:600px){
+  .pipeline{grid-template-columns:repeat(2, 1fr); row-gap:6px;}
+  .pl-step:not(:last-child)::after{content:none;}
+  .page,.cover,.pagefoot{padding-left:20px;padding-right:20px;}
+  .pipeline{padding-left:16px;padding-right:16px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table, table tbody{display:block; width:100%;}
+  table tr{display:block; padding:9px 0; border-bottom:1px solid var(--rule);}
+  table tr:first-child:has(th), table tr:has(th){display:none;}
+  table th, table td{display:block; padding:0; border:0; white-space:normal;}
+  table td:first-child{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+  table td:nth-child(2){font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  table td.num{font-size:13.5px; color:var(--accent2); font-weight:700;}
+  table td.label{font-weight:700;}
+  .spec{padding:16px 16px 4px;}
+  .diagram{padding:14px;}
+  pre{padding:14px 14px;}
+  p code, li code, td code{overflow-wrap:anywhere;}
+}
+</style>
+<link href="https://meta-puppet.github.io/english/control/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<article>
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../"><img alt="MetaPuppet" src="mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a href="../genesis/">Genesis</a>
+<a href="../pipeline/">Pipeline</a>
+<a href="../pipeline/stability/">Stability</a>
+<a aria-current="page" href="./">Control</a>
+<a href="../experience/">Experience</a>
+<a href="../credits/">Credits</a>
+</nav>
+</div>
+</div>
+<section class="cover">
+<div class="cover-kicker">Hardware &amp; Control Notes — MetaPuppet</div>
+<h1>How a Pinch Moves <em>the Other Arm</em></h1>
+<p class="sub">MetaPuppet converts the pinch motion of a participant's own fingers into a force that lifts the participant's other forearm. A record of the hardware and control implementation that connects the input to output using one UDP and one cable.</p>
+<div class="cover-meta">
+<div><span>Author</span><b class="author"><img alt="" src="anji_icon.jpeg"/>Anji Fujiwara</b></div>
+</div>
+</section>
+<div class="pipeline">
+<div class="pl-step"><div class="n">01</div><div class="t">Detect pinch in Unity</div></div>
+<div class="pl-step"><div class="n">02</div><div class="t">Send UDP to Motor Pi</div></div>
+<div class="pl-step"><div class="n">03</div><div class="t">Track target with PD</div></div>
+<div class="pl-step"><div class="n">04</div><div class="t">Drive STS servos</div></div>
+<div class="pl-step"><div class="n">05</div><div class="t">Wind cable onto drum</div></div>
+<div class="pl-step"><div class="n">06</div><div class="t">Lift the forearm</div></div>
+</div>
+<div class="page">
+<section class="chapter" id="prologue">
+<div class="chapter-head">
+<span class="chapter-num">Prologue</span>
+<span class="chapter-stage">Overview</span>
+</div>
+<h2>Preface</h2>
+<p>The core of MetaPuppet's experience is not just software. If camera images and VR drawings are records of transmission and synthesis, this record goes beyond that and is about the part that actually exerts force on the participants' bodies. Participants move their fingers. The hand tracking on the VR side detects the finger movements and sends one finger to the Raspberry Pi via UDP. Pi sets the value as the target position and uses PD control to follow the servo, and the rotation of the servo pulls the cable wrapped around the drum, which lifts the participant's other forearm. The person who moves his or her finger becomes the one being moved by an external force in the next moment<sup class="fnref" id="fnref-roles"><a href="#fn-roles">[1]</a></sup>.</p>
+<p>The recording traces the force path from the participant's fingertips to their forearm, following the actual moving cord. Hand tracking and UDP transmission on the input side are implemented in Unity (C#), and reception, PD control, and servo drive are implemented in Python on Raspberry Pi.</p>
+<div class="embed portrait">
+<img alt="Frame seen from the front. Two cords hang from the top crossbar, each connected to a wrist cuff. A laptop is placed at the bottom center, and a yellow emergency stop button can also be seen on the floor." loading="lazy" src="rig_overview.jpg"/>
+<div class="embed-caption">A view of the frame of the actual machine from the front. Cords extend from the two servos on the crossbar, each connected to a wrist cuff. The laptop in front is for opening the Motor Pi dashboard and calibrating it.</div>
+</div>
+<div class="footnotes">
+<ol>
+<li id="fn-roles">The idea that the two roles of “the self who moves” and “the self who is moved” occur simultaneously within the same body is the very framework for research on the sense of body ownership and agency using this experience.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch01">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 01</span>
+<span class="chapter-stage">Input / Hand Tracking</span>
+</div>
+<h2>Detecting a Pinch in VR</h2>
+<p>Input is handled by a component on the Unity side called <code>MetaPuppetPinchUdpSender</code>. First, obtain the positions of the thumb tip (ThumbTip) and index finger tip (IndexTip) from the <a href="https://docs.unity3d.com/Packages/com.unity.xr.hands@latest">XR Hands</a> joint, and calculate each frame with the midpoint between the two points as the "pinch point" and the distance between the two points as the "pinch distance." When the pinch distance becomes less than a predetermined threshold (default 2.5cm), it is determined that the pinch is in progress. If the headset's hand tracking loses a joint, there is also a fallback path that uses the pinch strength of Meta's pointing input (MetaAim), so that the input itself does not disappear immediately even if joint tracking is interrupted.</p>
+<p>While the pinch continues, calculate how far the pinch point has moved in the vertical direction from the previous frame (<code>verticalDeltaCm</code>) and the cumulative amount of movement since the pinch started (<code>verticalTotalCm</code>) for each frame in cm. The movement of lifting and lowering the forearm uses only this vertical component. Even if the pinch detection method (joint tracking or MetaAim) is switched midway through, the accumulated <code>verticalTotalCm</code> itself is carried over and only the origin is replaced (<code>Rebase</code>) in order to prevent the motor target value from jumping at the moment of switching.</p>
+<div class="spec">
+<div class="spec-title">Implemented value of pinch detection</div>
+<table class="data">
+<tr><th>item</th><th>value</th></tr>
+<tr><td>sending rate</td><td class="num">90 Hz</td></tr>
+<tr><td>Pinch threshold (joint tracking)</td><td class="num">2.5 cm</td></tr>
+<tr><td>Pinch threshold (MetaAim)</td><td class="num">strength ≥ 0.7, or index press</td></tr>
+<tr><td>Axis to detect</td><td class="num">Vertical direction (default is world top direction)</td></tr>
+<tr><td>left hand → motor</td><td class="num">ID 5</td></tr>
+<tr><td>right hand → motor</td><td class="num">ID 6</td></tr>
+</table>
+</div>
+</section>
+<section class="chapter" id="ch02">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 02</span>
+<span class="chapter-stage">UDP Packet</span>
+</div>
+<h2>The UDP Packet from Unity to the Raspberry Pi</h2>
+<p>The calculated value is packed into a unique 36-byte packet and sent via UDP. The reason why we chose UDP over TCP is that, similar to video transmission (the unique UDP protocol discussed in <a href="../pipeline/">What we worked hard to implement in the communication infrastructure</a>), even if some packets are missing, it is more important in applications that generate force to continue sending the “current finger position” than to send old values ​​later.</p>
+<div class="code-wrap">
+<div class="code-label">Packet layout of MetaPuppetPinchUdpSender.cs (version 2, 36 bytes)</div>
+<pre>char[4] Magic; <span class="c">// 'M','P','P','H'</span>
+byte Version; <span class="c">// = 2</span>
+byte Hand; <span class="c">// 0 = left, 1 = right</span>
+byte MotorId; <span class="c">// Servo ID driven by this packet</span>
+uint32 Sequence;
+double TimestampSeconds;
+byte IsPinch;
+float VerticalDeltaCm; <span class="k">// Difference from previous frame</span>
+float VerticalTotalCm; <span class="k">// Accumulation since pinch start</span>
+float PinchDistanceCm;
+float PinchStrength;</pre>
+</div>
+<p>The reason why <code>MotorId</code> is included in the packet itself in version 2 is to allow you to explicitly specify which hand drives which servo in the Inspector on the Unity side (as <code>Left Hand Motor Id</code> / <code>Right Hand Motor Id</code>) instead of relying only on the fixed mapping on the Pi side. Version 1 packets (32-byte old format without the <code>MotorId</code> field) are also accepted as backward compatible, in which case the Pi startup arguments (<code>--left-hand-servo-id</code> / <code>--right-hand-servo-id</code>) will be the fallback mapping.</p>
+</section>
+<section class="chapter" id="ch03">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 03</span>
+<span class="chapter-stage">Two-Pi Architecture</span>
+</div>
+<h2>Why We Use a Camera Pi and a Motor Pi</h2>
+<p>MetaPuppet uses two Raspberry Pis. The Camera Pi captures, encodes, and transmits stereo video over a custom UDP protocol. The Motor Pi drives the servos, which are the focus of this article. A <a href="../pipeline/">separate article</a> covers the Camera Pi. Both camera capture and encoding and the servo's serial communication and PD control loop are latency-sensitive, but their workloads are very different. On one Pi, either workload could slow the other down.</p>
+<div class="diagram">
+<div class="diagram-title">Field network configuration</div>
+<div class="dg-col">
+<div class="dg-step"><b>PC / Unity</b><small>Process hand tracking, send pinch packets to Motor Pi, and draw video processing results to HMD</small></div>
+<div class="dg-down">↓ UDP:5005 (pinch packet)</div>
+<div class="dg-step hot"><b>Motor Pi — pi_motor_webui.py :8080</b><small>UDP reception, PD control, STS servo drive. Camera Pi's <code>mp_control.py</code> to <code>/api/motor/*</code> is also proxyed</small></div>
+<div class="dg-down">↓ Serial (half duplex, 1 Mbps)</div>
+<div class="dg-step gpu"><b>STS servo ×2 (ID 5, 6)</b><small>Turn the drum that winds the cable</small></div>
+</div>
+</div>
+<p>The Camera Pi's integrated dashboard (<code>mp_control.py</code>, port 7000) directly proxies the Motor Pi's API to <code>/api/motor/*</code>, making it possible to check both the camera status and servo status from a single screen on the Camera Pi's dashboard in the field. The two Pis are connected by Tailscale<sup class="fnref" id="fnref-tailscale"><a href="#fn-tailscale">[1]</a></sup>, allowing fixed wiring (Ethernet) for production use and Tailscale for remote debugging to coexist as separate interfaces on the same Pi.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-tailscale"><a href="https://tailscale.com/">Tailscale</a> is a WireGuard-based mesh VPN. It is a service that allows devices on different networks to allocate fixed private IP addresses and communicate directly with each other, and is used as a route for developers to remotely check and operate the status of devices, separate from the venue's LAN.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch04">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 04</span>
+<span class="chapter-stage">Serial Bus Servo</span>
+</div>
+<h2>STS Servos and Custom Serial Packets</h2>
+<p>The drums are rotated by two Feetech <a href="https://www.feetechrc.com/">STS series</a> serial bus servos (ID 5 and 6). Unlike PWM servos for hobbyists, STS servos can be used to hang multiple units on a single half-duplex asynchronous serial line (default 1 Mbps), distinguishing them by ID, and read and write position, speed, and torque on/off information via registers. Of the <code>scservo_sdk</code> distributed for this series, Motor Pi only uses <code>PortHandler</code>, which opens and closes the serial port, and assembles the packets it actually sends on its own.</p>
+<div class="code-wrap">
+<div class="code-label">Packet format (STS bus protocol)</div>
+<pre>0xFF 0xFF ID Length Instruction [Params...] Checksum
+<span class="c">// Lower 1 byte of Checksum = ~(ID + Length + Instruction + Params...)</span>
+<span class="c">// ID 0xFE is the broadcast ID. Used for simultaneous writing to multiple servos (Sync Write, 0x83)</span></pre>
+</div>
+<div class="embed portrait">
+<img alt="An angle looking up at the frame from below. Two STS servos are mounted vertically in a 3D-printed mount, with a thin cord extending to the wrist cuff below. Thin red and white wires were also taken out." loading="lazy" src="servo_mount_detail.jpg"/>
+<div class="embed-caption">Looking up at the top of the frame. Two STS servos are secured to 3D printed mounts, and the cord extends to the wrist cuff.</div>
+</div>
+<p>After sending a ping to each servo at startup and checking the response, write 1 to the mode switching register (address 33) to set it to "wheel mode" <sup class="fnref" id="fnref-wheel"><a href="#fn-wheel">[1]</a></sup> and enable torque on (address 40). After that, the current position and current speed are read out in 4 bytes from address 56, and the target position (Sync Write, address 42) and rotation speed (Sync Write, address 41) are written together with the IDs and values ​​for the two machines in one broadcast packet. The reason for writing without waiting for a response (<code>write_packet_no_response</code>) is that position/velocity commands continue every frame, and if you wait for a response from the servo every time you write, the cycle of the PD control loop will be delayed accordingly.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-wheel">The STS servo can be switched between the normal “servo mode,” which rotates to a specified angle and stops, and the “wheel mode,” which allows it to continue rotating without any upper or lower limits. Since MetaPuppet needs to keep winding the cable around the drum, it uses a wheel mode with no limit to the angle and commands the rotation speed rather than the target position.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch05">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 05</span>
+<span class="chapter-stage">PD Control Loop</span>
+</div>
+<h2>Using PD Control to Track a Pinch-Driven Target</h2>
+<p>There are two main control modes for Motor Pi. Input from Unity is always received in the <code>pd</code> mode in the field, with a <code>relative</code> mode for manual jogging (moving the servo a certain amount on the spot) and a <code>pd</code> mode that continues to track the position of the finger that can be reached via UDP.</p>
+<p>In PD mode, the target count value is the "cumulative movement amount since the start of pinch (<code>total_cm</code>)" contained in the packet multiplied by <code>counts_per_cm</code> (number of encoder counts per cm determined by calibration, default 290). The difference between this target value and the estimated position held internally is defined as an error, and a term proportional to the size of the error (Kp) and a term proportional to the rate of change of the error (Kd) are added together to create the rotational speed command value sent to the servo <sup class="fnref" id="fnref-pd"><a href="#fn-pd">[1]</a></sup>.</p>
+<div class="code-wrap">
+<div class="code-label">Key points of pi_motor_webui.py (PD tracking loop)</div>
+<pre>target = total_cm * counts_per_cm * direction
+error = target - estimated_position
+speed = clamp(Kp * error + Kd * (error - previous_error) / dt, -speed_limit, speed_limit)
+<span class="c">// If the error is small and the speed is also small, set it to 0 (dead band)</span>
+<span class="c">// If it is not 0, raise the speed so that it does not fall below the minimum speed (min_command_speed) (measure against stiction)</span>
+<span class="c">// Clip the amount of change from the previous speed by pd_accel_limit * dt (suppress sudden acceleration)</span>
+estimated_position += speed * dt</pre>
+</div>
+<p>What you need to be careful about here is that the "estimated position" used as the basis for error calculation is not the actual position read back from the servo, but an estimated value only inside the Pi, which is simply the time integration of the speed command that was sent until just before. In other words, this PD control is not a strict closed loop that feeds back the servo's actual position every cycle, but a semi-open loop follower that approaches the target while estimating its current position from the commanded speed. Since position reading of the serial bus servo cannot be performed as frequently as command transmission, this design is a result of prioritizing stability of the control cycle over accuracy. The deadband, minimum speed, and upper limit of acceleration serve as buffers in actual operation to prevent the servo from continuing to jerk back and forth before reaching the target position, and to prevent sudden shock from being transmitted to the participant's arm.</p>
+<div class="spec">
+<div class="spec-title">Motor Pi control parameters (repository default values, overridden by venue-specific calibration)</div>
+<table class="data">
+<tr><th>item</th><th>value</th></tr>
+<tr><td>counts / cm</td><td class="num">290</td></tr>
+<tr><td>Drum diameter (estimated)</td><td class="num">Approximately 3 cm</td></tr>
+<tr><td>PD Kp / Kd</td><td class="num">8.0 / 3.0</td></tr>
+<tr><td>Speed ​​upper limit/acceleration upper limit</td><td class="num">3000 / 400 (manual), pd_accel_limit 20000 (PD)</td></tr>
+<tr><td>Minimum command speed</td><td class="num">10</td></tr>
+<tr><td>dead band</td><td class="num">3 counts</td></tr>
+<tr><td>motor direction</td><td class="num">Inverted by default (<code>--invert</code>)</td></tr>
+</table>
+</div>
+<div class="footnotes">
+<ol>
+<li id="fn-pd">PD control is a control method that generates commands based on the difference between the target value and the current value (proportional term, P), as well as the momentum of change (differential term, D), which indicates whether the difference is narrowing or widening. If there is only a proportional term, it is easy to cause vibrations that go too far near the target and then return, and the differential term plays the role of putting a brake on that vibration.</li>
+</ol>
+</div>
+</section>
+<section class="chapter" id="ch06">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 06</span>
+<span class="chapter-stage">Web Dashboard / Calibration</span>
+</div>
+<h2>On-Site Calibration and Manual Control</h2>
+<p>When Motor Pi starts up, it exposes Flask's <a href="http://100.65.206.21:8080/">Web Dashboard</a> on port 8080. Here, there is a table that displays the current position, target position, speed, and torque status of each servo every 250ms, and a table that displays the current position, target position, speed, and torque status of each servo. There is a manual jog that allows you to directly move the servo in mm increments, a <code>Set Initial</code> button that reregisters the current position as the "initial position" on the spot, and an adjustment panel that allows you to rewrite the PD's Kp/Kd, counts/cm, acceleration upper limit, and minimum command speed on the spot without restarting the process.</p>
+<p>Manual jog is a simple implementation different from PD mode, in which the specified number of mm is converted to <code>counts_per_cm</code>, and the servo is rotated at a speed calculated backwards from the minimum time (<code>min-jog-ms</code>, default 120ms), which is the expected number of milliseconds for the movement. This is primarily a function for manually adjusting the cable tension and drum winding position before participants put it on, and it shares the same <code>counts_per_cm</code> physical calibration values ​​used in PD mode.</p>
+</section>
+<section class="chapter" id="ch07">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 07</span>
+<span class="chapter-stage">Safety</span>
+</div>
+<h2>Safety Design for a Mechanism That Applies Force to the Body</h2>
+<p>Even if the camera or video pipeline breaks, the only thing that will happen is that the video will be distorted. However, because this mechanism generates the force that actually moves the participant's arm, it is not possible to design how it will break using software alone. In an implementation, multiple safety measures with different characteristics are piled up.</p>
+<div class="safety">
+<div class="safety-title">Do not run the motor immediately after startup</div>
+<p style="margin:0">When Motor Pi starts up, it accepts drive commands via UDP, but the <code>udp_enabled</code> flag is turned off by default. The servo responds to commands only after the mechanism is visually checked from the dashboard and staff explicitly enable UDP.</p>
+</div>
+<div class="embed portrait">
+<img alt="A red mushroom-shaped emergency stop button on a yellow case placed on the floor. The button says EMERGENCY STOP. There are HMDs and cables nearby." loading="lazy" src="estop_button.jpg"/>
+<div class="embed-caption">A physical emergency stop button located at the scene. A last resort independent of the emergency stop on the software side (two systems on the Unity side)</div>
+</div>
+<p>Apart from the software design, there is also a physical emergency stop button on site. This is for directly intervening in the power supply system without going through the software on the Unity side or the Motor Pi side, and in the sense that it can stop the mechanism no matter what state the software is in, it is a last resort that is one step more independent than the two systems that will be explained later.</p>
+<p>Unity also has two emergency stop systems that can be stopped independently by either participants or staff. One is for staff and is activated immediately by pressing the Escape key on the keyboard. The other one is for the person wearing it, and is activated by a gesture of holding both hands together for five seconds. This length of 5 seconds was designed to be both long enough so that it would not be activated accidentally even if both hands accidentally pinched at the same time during play, and short enough that the player could stop it on their own without waiting for the staff's reaction.</p>
+<p>Regardless of which route is used, a stop packet is immediately sent to all <code>MetaPuppetPinchUdpSender</code> (and related wire drive components) in the scene, and from then on, only empty safety packets are sent instead of actual drive packets. This stopped state is latched for the life of the process and cannot be cleared simply by reloading the scene, and the warning text continues to be displayed in red in the HMD. The design was based on the judgment that it would be meaningless if the system could be inadvertently returned to its original state after it had been stopped for safety reasons.</p>
+<p>The dead band and acceleration limit (Chapter 5) on the PD control side also work as part of this safety design. If the servo continues to vibrate slightly before the target value is reached, or if the target suddenly changes and a shock is transmitted to the arm, these are both failures that have a different gravity than a dropped frame in a video, since both are mechanisms that come into direct contact with the participant's body.</p>
+</section>
+<section class="chapter" id="epilogue">
+<div class="chapter-head">
+<span class="chapter-num">Epilogue</span>
+<span class="chapter-stage">Summary</span>
+</div>
+<h2>Afterword</h2>
+<p>The amount of finger pinch is packed into a UDP packet, converted to servo rotation speed using PD control, and the forearm is lifted using a cable wrapped around a drum. This is the only route that can be described in text, but every section of the route has constraints calculated from the premise that force is directly applied to the participants' bodies. The starting point of the design is how to track the target value (the reason why it is PD control and not a simple position command), the driving start conditions (UDP is off by default), and how to stop (two independent emergency stops and latches).</p>
+<p>The experimental framework for the question that this hardware is trying to answer - what is the effect of the experience of moving another part of your body using an external force when you initiate a movement with your own fingers? is summarized in a separate poster draft. This record is a simple record of wiring, packets, and gain that I wrote in order to actually make that question come true at the venue.</p>
+<div class="signature">
+<div>MetaPuppet — Hardware &amp; Control Notes</div>
+<div>Anji Fujiwara</div>
+</div>
+</section>
+</div>
+<div class="pagefoot">MetaPuppet</div>
+</article>
+</body>
+</html>

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>Studying What It Feels Like to Move and Be Moved — MetaPuppet</title>
+<meta content="How do people experience agency and body ownership when a movement they initiate causes their own body to be moved? Notes on the MetaPuppet device and an exploratory pilot." name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Studying What It Feels Like to Move and Be Moved — MetaPuppet" property="og:title"/>
+<meta content="How do people experience agency and body ownership when a movement they initiate causes their own body to be moved? Notes on the MetaPuppet device and an exploratory pilot." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/research/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/research/mp_logo.png" property="og:image"/>
+<link href="mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  /* dark-first, to match the MetaPuppet main site */
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent-soft:#3a2530;
+  --accent2:#6fbfc4;
+  --accent2-soft:#193638;
+  --code-bg:#0a0a0b;
+  --code-ink:#e7e6e0;
+  --code-accent:#e78fb3;
+  --code-accent2:#6fbfc4;
+}
+
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6;
+    --paper-raised:#f2f0eb;
+    --ink:#171a1d;
+    --ink-soft:#4b5459;
+    --ink-faint:#8b9296;
+    --rule:#d8d5cd;
+    --rule-strong:#b9b5aa;
+    --accent:#b8500e;
+    --accent-soft:#e8c7a9;
+    --accent2:#14646b;
+    --accent2-soft:#bcdadc;
+    --code-bg:#171a1d;
+    --code-ink:#e7e6e0;
+    --code-accent:#e0954f;
+    --code-accent2:#6fbfc4;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6;
+  --paper-raised:#f2f0eb;
+  --ink:#171a1d;
+  --ink-soft:#4b5459;
+  --ink-faint:#8b9296;
+  --rule:#d8d5cd;
+  --rule-strong:#b9b5aa;
+  --accent:#b8500e;
+  --accent-soft:#e8c7a9;
+  --accent2:#14646b;
+  --accent2-soft:#bcdadc;
+  --code-bg:#171a1d;
+  --code-ink:#e7e6e0;
+  --code-accent:#e0954f;
+  --code-accent2:#6fbfc4;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:760px;
+  margin:0 auto;
+  padding:26px 40px 90px;
+}
+
+.cover{
+  max-width:760px;
+  margin:0 auto;
+  padding:76px 40px 60px;
+  border-bottom:1px solid var(--rule);
+}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:22px;
+}
+.cover-kicker::before{
+  content:"";
+  width:26px;height:1px;
+  background:var(--accent);
+  display:inline-block;
+}
+.cover h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:800;
+  font-size:clamp(32px,5.6vw,48px);
+  line-height:1.4;
+  margin:0 0 20px;
+  text-wrap:balance;
+  letter-spacing:.01em;
+}
+.cover h1 em{
+  font-style:normal;
+  color:var(--accent);
+}
+.cover .sub{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  margin:0 0 34px;
+}
+.cover-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:28px 40px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+  border-top:1px solid var(--rule);
+  padding-top:22px;
+}
+.cover-meta div span{
+  display:block;
+  color:var(--ink-faint);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cover-meta div b{
+  color:var(--ink);
+  font-weight:700;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:13.5px;
+}
+.cover-meta .author{display:inline-flex; align-items:center; gap:8px;}
+.cover-meta .author img{width:22px; height:22px; border-radius:50%; object-fit:cover; display:block; filter:grayscale(1);}
+
+.pipeline{
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 20px 26px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(82px, 1fr));
+  align-items:stretch;
+  gap:0;
+  overflow:visible;
+  border-bottom:1px solid var(--rule);
+  background:var(--paper-raised);
+}
+.pl-step{
+  min-width:0;
+  padding:6px 9px 6px 4px;
+  position:relative;
+  font-family:"IBM Plex Mono",monospace;
+}
+.pl-step .n{
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.pl-step .t{
+  font-size:11px;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  font-weight:700;
+  margin-top:3px;
+  line-height:1.4;
+}
+.pl-step:not(:last-child)::after{
+  content:"→";
+  position:absolute;
+  right:-2px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-faint);
+  font-size:13px;
+}
+
+.chapter{scroll-margin-top:80px;}
+.chapter{
+  border-top:1px solid var(--rule-strong);
+  padding-top:46px;
+  margin-top:10px;
+}
+.chapter:first-of-type{border-top:none;}
+.chapter-head{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:8px;
+}
+.chapter-num{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:13px;
+  color:var(--accent2);
+  letter-spacing:.05em;
+  white-space:nowrap;
+}
+.chapter-stage{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-faint);
+}
+.chapter h2{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:700;
+  font-size:26px;
+  margin:6px 0 30px;
+  text-wrap:balance;
+}
+.lede{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  border-left:3px solid var(--accent);
+  padding-left:18px;
+  margin:0 0 34px;
+}
+
+.chapter h3{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:18.5px;
+  font-weight:700;
+  margin:38px 0 14px;
+}
+.chapter p{margin:0 0 20px;}
+
+.spec{
+  background:var(--paper-raised);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--accent2);
+  border-radius:2px;
+  padding:20px 22px 6px;
+  margin:28px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.spec-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--accent2);
+  margin-bottom:10px;
+}
+
+.code-wrap{
+  margin:24px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.code-label{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  color:var(--ink-faint);
+  margin-bottom:6px;
+  letter-spacing:.05em;
+}
+pre{
+  background:var(--code-bg);
+  color:var(--code-ink);
+  padding:18px 20px;
+  border-radius:3px;
+  overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  line-height:1.7;
+  margin:0;
+}
+pre .k{color:var(--code-accent2);}
+pre .c{color:var(--code-accent);}
+code{
+  font-family:"IBM Plex Mono",monospace;
+  background:var(--paper-raised);
+  padding:1px 5px;
+  border-radius:2px;
+  font-size:.9em;
+  border:1px solid var(--rule);
+}
+
+.chapter a, .cover a, .footnotes a{
+  color:var(--accent2);
+  text-decoration-color:var(--rule-strong);
+  text-underline-offset:2px;
+}
+.chapter a:visited, .cover a:visited, .footnotes a:visited{color:var(--accent2);}
+.chapter a:hover, .cover a:hover, .footnotes a:hover{color:var(--accent);}
+
+.diagram{
+  margin:30px 0;
+  border:1px solid var(--rule);
+  background:var(--paper-raised);
+  padding:22px;
+  page-break-inside:avoid;
+}
+.diagram-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-faint);
+  margin-bottom:14px;
+}
+.dg-col{display:flex; flex-direction:column;}
+.dg-step{
+  border:1px solid var(--rule-strong);
+  background:var(--paper);
+  border-radius:2px;
+  padding:12px 16px;
+  line-height:1.6;
+}
+.dg-step b{display:block; font-size:13.5px; color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-step small{display:block; color:var(--ink-soft); font-size:12px; margin-top:2px;}
+.dg-step .code-note{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint);}
+.dg-step.hot{border-color:var(--accent);} .dg-step.hot b{color:var(--accent);}
+.dg-step.gpu{border-color:var(--accent2);} .dg-step.gpu b{color:var(--accent2);}
+.dg-down{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  color:var(--ink-faint);
+  padding:7px 0 7px 18px;
+}
+
+table.data{
+  width:100%;
+  border-collapse:collapse;
+  margin:24px 0;
+  font-size:13.5px;
+}
+table.data caption{
+  text-align:left;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-soft);
+  margin-bottom:10px;
+  caption-side:top;
+}
+table.data th{
+  text-align:left;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-soft);
+  border-bottom:1px solid var(--rule-strong);
+  padding:8px 14px 8px 0;
+}
+table.data td{
+  border-bottom:1px solid var(--rule);
+  padding:10px 14px 10px 0;
+  vertical-align:top;
+}
+table.data td.num{font-family:"IBM Plex Mono",monospace;color:var(--accent2);font-weight:700;}
+table.data{table-layout:fixed;}
+table.data th:first-child, table.data td:first-child{width:38%;}
+table.data td{overflow-wrap:anywhere;}
+table.data td.label{font-weight:700;}
+
+sup.fnref{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10px;
+  color:var(--accent2);
+  margin-left:1px;
+}
+sup.fnref a{color:inherit;text-decoration:none;}
+.footnotes{
+  margin-top:34px;
+  padding-top:16px;
+  border-top:1px solid var(--rule);
+}
+.footnotes ol{
+  margin:0;
+  padding-left:1.3em;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  line-height:1.7;
+}
+.footnotes li{margin-bottom:8px;}
+.footnotes li:target,.footnotes li:target::marker{color:var(--accent);}
+
+.signature{
+  margin-top:56px;
+  padding-top:22px;
+  border-top:1px solid var(--rule);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  font-size:13px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+}
+
+.pagefoot{
+  max-width:760px;
+  margin:0 auto;
+  padding:30px 40px 60px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  text-align:center;
+  letter-spacing:.05em;
+}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:760px;
+  margin:0 auto;
+  padding:16px 40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.site-header .brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  opacity:.95;
+  transition:opacity .15s ease;
+}
+.site-header .brand:hover{opacity:1;}
+.site-header img{
+  height:40px;
+  width:auto;
+  display:block;
+}
+.site-nav{
+  display:flex;
+  gap:22px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  letter-spacing:.04em;
+}
+.site-nav a{
+  color:var(--ink-faint);
+  text-decoration:none;
+}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+.embed{margin:28px 0;}
+.embed img{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.embed-caption{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); margin-top:8px;}
+.embed.portrait img{max-width:320px; margin:0 auto;}
+.embed.portrait .embed-caption{max-width:320px; margin-left:auto; margin-right:auto; text-align:center;}
+
+.safety{
+  background:var(--accent-soft);
+  border:1px solid var(--accent);
+  border-radius:2px;
+  padding:18px 22px;
+  margin:28px 0;
+  page-break-inside:avoid;
+}
+.safety-title{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:8px;
+  font-weight:700;
+}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); background:var(--paper-raised);}
+  .pl-step .t{font-size:10.5px;}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+
+@media (max-width:600px){
+  .pipeline{grid-template-columns:repeat(2, 1fr); row-gap:6px;}
+  .pl-step:not(:last-child)::after{content:none;}
+  .page,.cover,.pagefoot{padding-left:20px;padding-right:20px;}
+  .pipeline{padding-left:16px;padding-right:16px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table, table tbody{display:block; width:100%;}
+  table tr{display:block; padding:9px 0; border-bottom:1px solid var(--rule);}
+  table tr:first-child:has(th), table tr:has(th){display:none;}
+  table th, table td{display:block; padding:0; border:0; white-space:normal;}
+  table td:first-child{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+  table td:nth-child(2){font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  table td.num{font-size:13.5px; color:var(--accent2); font-weight:700;}
+  table td.label{font-weight:700;}
+  .spec{padding:16px 16px 4px;}
+  .diagram{padding:14px;}
+  pre{padding:14px 14px;}
+  p code, li code, td code{overflow-wrap:anywhere;}
+}
+
+
+</style>
+<link href="https://meta-puppet.github.io/english/research/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<article class="research-article">
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../"><img alt="MetaPuppet" src="mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a href="../genesis/">Genesis</a>
+<a href="../pipeline/">Pipeline</a>
+<a href="../control/">Control</a>
+<a href="../experience/">Experience</a>
+<a aria-current="page" href="./">Research</a>
+<a href="../credits/">Credits</a>
+</nav>
+</div>
+</div>
+<section class="cover">
+<div class="cover-kicker">Research Notes — MetaPuppet</div>
+<h1>Studying What It Feels Like to <em>Move and Be Moved</em></h1>
+<p class="sub">How do people experience agency and body ownership when a movement they initiate causes their own body to be moved? Notes on the MetaPuppet device and an exploratory pilot.</p>
+<div class="cover-meta">
+<div><span>Author</span><b class="author"><img alt="" src="anji_icon.jpeg"/>Anji Fujiwara</b></div>
+<div><span>Study</span><b>Exploratory pilot · N = 6</b></div>
+</div>
+</section>
+<div aria-label="Structure of this record" class="pipeline">
+<div class="pl-step"><div class="n">01</div><div class="t">Reframe the question</div></div>
+<div class="pl-step"><div class="n">02</div><div class="t">Two roles in one body</div></div>
+<div class="pl-step"><div class="n">03</div><div class="t">Vary viewpoint and movement</div></div>
+<div class="pl-step"><div class="n">04</div><div class="t">Pilot observations</div></div>
+<div class="pl-step"><div class="n">05</div><div class="t">Open questions</div></div>
+</div>
+<div class="page">
+<section class="chapter" id="prologue">
+<div class="chapter-head"><span class="chapter-num">Prologue</span><span class="chapter-stage">Question</span></div>
+<h2>Preface</h2>
+<p>We started MetaPuppet as a VR experience. You bring a live camera image of yourself into VR and use your fingers to control the body you see. When we tried it, though, the phrase “controlling yourself” left something out.</p>
+<p>What does it mean to control yourself here? The phrase started as a metaphor, but the experience gave us a reason to look at it more closely.</p>
+<p>I move my fingers, and the motor and cable supply the force that lifts my forearm. The same person provides the input and receives the output. How does it feel to operate and be moved within the same body?</p>
+<p class="lede">This page describes the apparatus I built to study that question and what we observed in a small exploratory pilot.</p>
+</section>
+<section class="chapter" id="roles">
+<div class="chapter-head"><span class="chapter-num">Chapter 01</span><span class="chapter-stage">Roles</span></div>
+<h2>Two Roles in the Same Body</h2>
+<p>Body ownership, sense of agency, and self-location capture different aspects of how we experience our bodies. In MetaPuppet, we consider them separately.</p>
+<p>You can feel that you initiated a movement with your fingers even as a motor moves your forearm. How strongly you identify the body you see as your own can also vary independently of how strongly you feel that you are moving it.</p>
+<div class="diagram">
+<div class="diagram-title">Two roles in the same MetaPuppet interaction</div>
+<div class="dg-row">
+<div class="dg-box hot"><b>acting self</b><small>Initiates the input with a pinch</small></div>
+<div class="dg-arrow">→</div>
+<div class="dg-box"><b>device</b><small>Tracking, communication, motor, and cable</small></div>
+<div class="dg-arrow">→</div>
+<div class="dg-box gpu"><b>moved self</b><small>Receives external force at the forearm</small></div>
+</div>
+</div>
+<p>For this study, we use “acting self” for the person in the role of operating the device and “moved self” for the same person in the role of being moved by it. These working terms describe two roles that the apparatus brings together.</p>
+</section>
+<section class="chapter" id="design">
+<div class="chapter-head"><span class="chapter-num">Chapter 02</span><span class="chapter-stage">Design</span></div>
+<h2>Varying Viewpoint and Movement Independently</h2>
+<p>Participants wore a Meta Quest headset and saw their bodies in VR. We used two viewpoints: a first-person perspective (1PP) that followed the direction of the head and a third-person perspective (3PP) from a camera fixed behind the participant.</p>
+<p>We also used three movement conditions.</p>
+<div class="spec">
+<div class="spec-title">Movement conditions</div>
+<table class="data">
+<tr><th>Condition</th><th>Description</th></tr>
+<tr><td>Voluntary</td><td>Participants move their own forearms without the motor.</td></tr>
+<tr><td>Mediated</td><td>The motor moves the forearm in response to finger input.</td></tr>
+<tr><td>Replay</td><td>The motor moves the forearm along a prerecorded command trajectory, independently of current finger input.</td></tr>
+</table>
+</div>
+<p>In the Mediated condition, Unity hand tracking measured the vertical movement of the pinching hand. The PC sent commands to the Raspberry Pi at 90 Hz. The Pi drove a motorized spool that pulled the forearm via a detachable harness. We recorded the hand input and command trajectories. Actual forearm displacement was unmeasured.</p>
+</section>
+<section class="chapter" id="observation">
+<div class="chapter-head"><span class="chapter-num">Chapter 03</span><span class="chapter-stage">Pilot observation</span></div>
+<h2>Preliminary Observations</h2>
+<p>Six participants completed a seven-point rating scale after each condition. We asked about sense of agency, body ownership, feeling located in the visible body, feeling moved by an external force, feeling both in control and moved at the same time, and seeing one’s own body from the outside.</p>
+<div class="spec">
+<div class="spec-title">Mediated condition — mean ratings (1PP / 3PP)</div>
+<table class="data">
+<tr><th>Rating item</th><th>1PP / 3PP</th></tr>
+<tr><td>Sense of agency</td><td class="num">4.89 / 5.72</td></tr>
+<tr><td>Sense of body ownership</td><td class="num">6.17 / 4.92</td></tr>
+<tr><td>Feeling located in the visible body</td><td class="num">6.00 / 4.17</td></tr>
+<tr><td>Feeling moved by an external force</td><td class="num">5.33 / 5.00</td></tr>
+</table>
+</div>
+<p>In the Mediated condition, mean sense of agency was higher in 3PP. Mean body ownership and the feeling of being located in the visible body were both lower in 3PP. The feeling of being moved by an external force remained high in both viewpoints.</p>
+<p>Seeing the body from outside may have made it easier to follow the relationship between hand input and arm motion. The tactile and proprioceptive cues of being moved by the mechanism were still present. The differing patterns in agency and embodiment are relevant to the question this device was designed to investigate.</p>
+<p class="lede">These are descriptive observations from the pilot. We ran no statistical tests, and the observations alone cannot establish that viewpoint separated the acting self from the moved self.</p>
+</section>
+<section class="chapter" id="limits">
+<div class="chapter-head"><span class="chapter-num">Chapter 04</span><span class="chapter-stage">Scope</span></div>
+<h2>What the Pilot Leaves Open</h2>
+<p>The pilot had six participants, and everyone completed the conditions in a fixed order. We therefore could not distinguish effects of viewpoint from effects of familiarity or order. Our items drew on existing embodiment scales and included questions written for this apparatus. They have yet to be validated as a device-specific scale.</p>
+<p>The ratings help identify what to vary and measure in the next study.</p>
+</section>
+<section class="chapter" id="epilogue">
+<div class="chapter-head"><span class="chapter-num">Epilogue</span><span class="chapter-stage">Ongoing work</span></div>
+<h2>Afterword</h2>
+<p>MetaPuppet lets the same person operate the device and be moved by it at the same time.</p>
+<p>The experience depends on video, hand tracking, communication, motor control, and emergency stopping working together. A working apparatus makes it possible to turn impressions from the experience into questions we can test.</p>
+<p>This pilot is a starting point. An apparatus that moves a person’s body in response to a movement they initiate gives us a concrete way to study sense of agency and body ownership separately.</p>
+<p>We are now adapting the apparatus to use electromyography (EMG) and electrical muscle stimulation (EMS), with input from one part of the body used to move another. We want to examine whether people experience the initiating movement as a command to move the other body part or continue to experience it in its original role.</p>
+<div class="signature"><div>MetaPuppet — Research Notes</div><div>Anji Fujiwara</div></div>
+</section>
+</div>
+<div class="pagefoot">MetaPuppet</div>
+</article>
+</body>
+</html>

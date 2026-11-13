@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>Keeping the GPU from Crashing — MetaPuppet</title>
+<meta content="How prewarming and coordinated locking resolved GPU timeouts after scene transitions while Direct3D 11 and CUDA shared the same GPU." name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Keeping the GPU from Crashing — MetaPuppet" property="og:title"/>
+<meta content="How prewarming and coordinated locking resolved GPU timeouts after scene transitions while Direct3D 11 and CUDA shared the same GPU." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/pipeline/stability/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/pipeline/mp_logo.png" property="og:image"/>
+<link href="../mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  /* dark-first, to match the MetaPuppet main site */
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent-soft:#3a2530;
+  --accent2:#6fbfc4;
+  --accent2-soft:#193638;
+  --code-bg:#0a0a0b;
+  --code-ink:#e7e6e0;
+  --code-accent:#e78fb3;
+  --code-accent2:#6fbfc4;
+}
+
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6;
+    --paper-raised:#f2f0eb;
+    --ink:#171a1d;
+    --ink-soft:#4b5459;
+    --ink-faint:#8b9296;
+    --rule:#d8d5cd;
+    --rule-strong:#b9b5aa;
+    --accent:#b8500e;
+    --accent-soft:#e8c7a9;
+    --accent2:#14646b;
+    --accent2-soft:#bcdadc;
+    --code-bg:#171a1d;
+    --code-ink:#e7e6e0;
+    --code-accent:#e0954f;
+    --code-accent2:#6fbfc4;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6;
+  --paper-raised:#f2f0eb;
+  --ink:#171a1d;
+  --ink-soft:#4b5459;
+  --ink-faint:#8b9296;
+  --rule:#d8d5cd;
+  --rule-strong:#b9b5aa;
+  --accent:#b8500e;
+  --accent-soft:#e8c7a9;
+  --accent2:#14646b;
+  --accent2-soft:#bcdadc;
+  --code-bg:#171a1d;
+  --code-ink:#e7e6e0;
+  --code-accent:#e0954f;
+  --code-accent2:#6fbfc4;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:760px;
+  margin:0 auto;
+  padding:64px 40px 90px;
+}
+
+.cover{
+  max-width:760px;
+  margin:0 auto;
+  padding:76px 40px 60px;
+  border-bottom:1px solid var(--rule);
+}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:22px;
+}
+.cover-kicker::before{
+  content:"";
+  width:26px;height:1px;
+  background:var(--accent);
+  display:inline-block;
+}
+.cover h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:800;
+  font-size:clamp(32px,5.6vw,48px);
+  line-height:1.4;
+  margin:0 0 20px;
+  text-wrap:balance;
+  letter-spacing:.01em;
+}
+.cover h1 em{
+  font-style:normal;
+  color:var(--accent);
+}
+.cover .sub{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  margin:0 0 34px;
+}
+.cover-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:28px 40px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+  border-top:1px solid var(--rule);
+  padding-top:22px;
+}
+.cover-meta div span{
+  display:block;
+  color:var(--ink-faint);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cover-meta div b{
+  color:var(--ink);
+  font-weight:700;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:13.5px;
+}
+.cover-meta .author{display:inline-flex; align-items:center; gap:8px;}
+.cover-meta .author img{width:22px; height:22px; border-radius:50%; object-fit:cover; display:block; filter:grayscale(1);}
+
+.pipeline{
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 20px 26px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(82px, 1fr));
+  align-items:stretch;
+  gap:0;
+  overflow:visible;
+  border-bottom:1px solid var(--rule);
+  background:var(--paper-raised);
+}
+.pl-step{
+  min-width:0;
+  padding:6px 9px 6px 4px;
+  position:relative;
+  font-family:"IBM Plex Mono",monospace;
+}
+.pl-step .n{
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.pl-step .t{
+  font-size:11px;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  font-weight:700;
+  margin-top:3px;
+  line-height:1.4;
+}
+.pl-step:not(:last-child)::after{
+  content:"→";
+  position:absolute;
+  right:-2px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-faint);
+  font-size:13px;
+}
+
+.chapter{
+  border-top:1px solid var(--rule-strong);
+  padding-top:46px;
+  margin-top:10px;
+}
+.chapter:first-of-type{border-top:none;}
+.chapter-head{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:8px;
+}
+.chapter-num{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:13px;
+  color:var(--accent2);
+  letter-spacing:.05em;
+  white-space:nowrap;
+}
+.chapter-stage{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-faint);
+}
+.chapter h2{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:700;
+  font-size:26px;
+  margin:6px 0 30px;
+  text-wrap:balance;
+}
+.lede{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  border-left:3px solid var(--accent);
+  padding-left:18px;
+  margin:0 0 34px;
+}
+
+.chapter h3{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:18.5px;
+  font-weight:700;
+  margin:38px 0 14px;
+}
+.chapter p{margin:0 0 20px;}
+
+.spec{
+  background:var(--paper-raised);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--accent2);
+  border-radius:2px;
+  padding:20px 22px 6px;
+  margin:28px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.spec-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--accent2);
+  margin-bottom:10px;
+}
+
+.code-wrap{
+  margin:24px 0;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.code-label{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;
+  color:var(--ink-faint);
+  margin-bottom:6px;
+  letter-spacing:.05em;
+}
+pre{
+  background:var(--code-bg);
+  color:var(--code-ink);
+  padding:18px 20px;
+  border-radius:3px;
+  overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  line-height:1.7;
+  margin:0;
+}
+pre .k{color:var(--code-accent2);}
+pre .c{color:var(--code-accent);}
+code{
+  font-family:"IBM Plex Mono",monospace;
+  background:var(--paper-raised);
+  padding:1px 5px;
+  border-radius:2px;
+  font-size:.9em;
+  border:1px solid var(--rule);
+}
+
+.chapter a, .cover a, .footnotes a{
+  color:var(--accent2);
+  text-decoration-color:var(--rule-strong);
+  text-underline-offset:2px;
+}
+.chapter a:visited, .cover a:visited, .footnotes a:visited{color:var(--accent2);}
+.chapter a:hover, .cover a:hover, .footnotes a:hover{color:var(--accent);}
+
+.diagram{
+  margin:30px 0;
+  border:1px solid var(--rule);
+  background:var(--paper-raised);
+  padding:22px;
+  page-break-inside:avoid;
+}
+.diagram-title{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-faint);
+  margin-bottom:14px;
+}
+.dg-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.dg-box{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px;
+  border:1px solid var(--rule-strong);
+  background:var(--paper);
+  padding:10px 13px;
+  border-radius:2px;
+  text-align:center;
+  line-height:1.5;
+}
+.dg-box b{display:block;font-size:12.5px;color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-box small{color:var(--ink-faint);font-size:10px;}
+.dg-box.hot{border-color:var(--accent);}
+.dg-box.hot b{color:var(--accent);}
+.dg-box.gpu{border-color:var(--accent2);}
+.dg-box.gpu b{color:var(--accent2);}
+.dg-arrow{
+  color:var(--ink-faint);
+  padding:0 8px;
+  font-size:14px;
+}
+.dg-col{display:flex; flex-direction:column;}
+.dg-step{
+  border:1px solid var(--rule-strong);
+  background:var(--paper);
+  border-radius:2px;
+  padding:12px 16px;
+  line-height:1.6;
+}
+.dg-step b{display:block; font-size:13.5px; color:var(--ink); font-family:"Hanken Grotesk",system-ui,sans-serif;}
+.dg-step small{display:block; color:var(--ink-soft); font-size:12px; margin-top:2px;}
+.dg-step .code-note{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint);}
+.dg-step.hot{border-color:var(--accent);} .dg-step.hot b{color:var(--accent);}
+.dg-step.gpu{border-color:var(--accent2);} .dg-step.gpu b{color:var(--accent2);}
+.dg-down{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  color:var(--ink-faint);
+  padding:7px 0 7px 18px;
+}
+
+table.data{
+  width:100%;
+  border-collapse:collapse;
+  margin:24px 0;
+  font-size:13.5px;
+}
+table.data caption{
+  text-align:left;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink-soft);
+  margin-bottom:10px;
+  caption-side:top;
+}
+table.data th{
+  text-align:left;
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-soft);
+  border-bottom:1px solid var(--rule-strong);
+  padding:8px 14px 8px 0;
+}
+table.data td{
+  border-bottom:1px solid var(--rule);
+  padding:10px 14px 10px 0;
+  vertical-align:top;
+}
+table.data td.num{font-family:"IBM Plex Mono",monospace;color:var(--accent2);font-weight:700;}
+table.data{table-layout:fixed;}
+table.data th:first-child, table.data td:first-child{width:38%;}
+table.data td{overflow-wrap:anywhere;}
+table.data td.label{font-weight:700;}
+
+sup.fnref{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:10px;
+  color:var(--accent2);
+  margin-left:1px;
+}
+sup.fnref a{color:inherit;text-decoration:none;}
+.footnotes{
+  margin-top:34px;
+  padding-top:16px;
+  border-top:1px solid var(--rule);
+}
+.footnotes ol{
+  margin:0;
+  padding-left:1.3em;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  line-height:1.7;
+}
+.footnotes li{margin-bottom:8px;}
+.footnotes li:target,.footnotes li:target::marker{color:var(--accent);}
+
+.embed{margin:28px 0;}
+.embed img, .embed video{width:100%; height:auto; border:1px solid var(--rule-strong); border-radius:2px; display:block;}
+.embed.portrait img, .embed.portrait video{max-width:320px; margin:0 auto;}
+.embed.portrait .embed-caption{max-width:320px; margin-left:auto; margin-right:auto; text-align:center;}
+.embed-caption{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); margin-top:8px;}
+
+.signature{
+  margin-top:56px;
+  padding-top:22px;
+  border-top:1px solid var(--rule);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  font-size:13px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+}
+
+.pagefoot{
+  max-width:760px;
+  margin:0 auto;
+  padding:30px 40px 60px;
+  color:var(--ink-faint);
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  text-align:center;
+  letter-spacing:.05em;
+}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:760px;
+  margin:0 auto;
+  padding:16px 40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.site-header .brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  opacity:.95;
+  transition:opacity .15s ease;
+}
+.site-header .brand:hover{opacity:1;}
+.site-header img{
+  height:40px;
+  width:auto;
+  display:block;
+}
+.site-nav{
+  display:flex;
+  gap:22px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  letter-spacing:.04em;
+}
+.site-nav a{
+  color:var(--ink-faint);
+  text-decoration:none;
+}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); background:var(--paper-raised);}
+  .pl-step .t{font-size:10.5px;}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+
+@media (max-width:600px){
+  .pipeline{grid-template-columns:repeat(2, 1fr); row-gap:6px;}
+  .pl-step:not(:last-child)::after{content:none;}
+  .page,.cover,.pagefoot{padding-left:20px;padding-right:20px;}
+  .pipeline{padding-left:16px;padding-right:16px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table{display:block; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table tbody{display:table; width:100%;}
+  th,td{padding-right:10px;}
+  .diagram{padding:14px;}
+  pre{padding:14px 14px;}
+  p code, li code, td code{overflow-wrap:anywhere;}
+}
+</style>
+<link href="https://meta-puppet.github.io/english/pipeline/stability/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<article>
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../../"><img alt="MetaPuppet" src="../mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a href="../../genesis/">Genesis</a>
+<a href="../">Pipeline</a>
+<a aria-current="page" href="./">Stability</a>
+<a href="../../control/">Control</a>
+<a href="../../experience/">Experience</a>
+<a href="../../credits/">Credits</a>
+</nav>
+</div>
+</div>
+<section class="cover">
+<div class="cover-kicker">Software Notes — MetaPuppet / Pipeline Addendum</div>
+<h1>Keeping the GPU from Crashing</h1>
+<p class="sub">When I put Unity drawing (Direct3D 11) and AI inference (CUDA/TensorRT) on the same GPU, the entire GPU was reset a few seconds after changing the scene. The record was traced to the cause and rebuilt to a structure that would not fall. This is a continuation of Chapters 4 and 5 of the <a href="../">main volume</a>, but as you can understand from here on, supplementary terms are added each time.</p>
+<div class="cover-meta">
+<div><span>Author</span><b class="author"><img alt="" src="../kosuke.jpg"/>Shimizu (in charge of software implementation)</b></div>
+</div>
+</section>
+<div class="pipeline">
+<div class="pl-step"><div class="n">01</div><div class="t">Identify the crash</div></div>
+<div class="pl-step"><div class="n">02</div><div class="t">Revisit the diagnosis</div></div>
+<div class="pl-step"><div class="n">03</div><div class="t">Prevent workload spikes</div></div>
+<div class="pl-step"><div class="n">04</div><div class="t">Coordinate D3D11 and CUDA</div></div>
+<div class="pl-step"><div class="n">05</div><div class="t">Fix issues found in review</div></div>
+<div class="pl-step"><div class="n">06</div><div class="t">Add runtime safeguards</div></div>
+</div>
+<div class="page">
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Prologue</span>
+<span class="chapter-stage">What actually happened</span>
+</div>
+<h2>Preface</h2>
+<div class="embed">
+<img alt="Unity Error: Failed to present D3D11 swapchain due to device reset/removed. This error can happen if you draw or dispatch very expensive workloads to the GPU, which can cause Windows to detect a GPU Timeout and reset the device." src="tdr_unity_error.png"/>
+<div class="embed-caption">On the exhibition laptop (RTX 5070 Laptop), a dialog appeared every time about 6 seconds after loading the scene. Concludes with "This is an unrecoverable error and the editor will close"</div>
+</div>
+<div class="spec">
+<div class="spec-title">Summarized in 3 lines:</div>
+<table class="data">
+<tr><td>what happened</td><td>In the middle of the experience, the GPU became silent for 2 seconds, and Windows determined that the GPU had frozen and reset the GPU. Unity couldn't stand it and crashed.</td></tr>
+<tr><td>what was the cause</td><td>The “heavy initial processing” of loading the AI ​​model onto the GPU was running right in the middle of the video being drawn. Moreover, the two jobs that requested reading were touching the same GPU without waiting their turn.</td></tr>
+<tr><td>how did you fix it</td><td>All the heavy processing was done on the intro screen before the participants pressed START, and during the actual event, they only had to "pick up" instead of "make". I decided to use the same key every time I touched the GPU.</td></tr>
+</table>
+</div>
+<div class="spec">
+<div class="spec-title">Glossary (in order of appearance in this addendum)</div>
+<table class="data">
+<tr><th>term</th><th>in one word</th></tr>
+<tr><td>D3D11（Direct3D 11）</td><td>A window for commanding the GPU to "draw this" on Windows. Unity draws the image with this. More details in footnote [1]</td></tr>
+<tr><td>TDR</td><td>A protection feature that causes Windows to reset the GPU when it is unresponsive for 2 seconds. From the app's perspective, it says "the device has disappeared." Footnotes [2]</td></tr>
+<tr><td>CUDA</td><td>A mechanism for performing calculations other than drawing (in this case AI inference) using NVIDIA's GPU. Use the same GPU as D3D11 from another window</td></tr>
+<tr><td>TensorRT / plan</td><td>NVIDIA's AI inference engine. Create a trained model into a file called "plan" that is optimized for that GPU, and then load it. This load is heavy</td></tr>
+<tr><td>deserialize</td><td>Expand the plan file into a format that can be used on the GPU. Occupies GPU for hundreds of milliseconds to seconds</td></tr>
+<tr><td>prewarm</td><td>Before using it in the actual performance, complete some warm-up exercises in your free time. The main character of this addendum</td></tr>
+<tr><td>Present</td><td>A command to send the drawn image to the screen (headset). If this stops for 2 seconds, it becomes TDR.</td></tr>
+<tr><td>RVM / RTMPose</td><td>RVM (Robust Video Matting) is a model that extracts a silhouette (alpha) of a person from a video, and RTMPose is a model that estimates body joint positions.</td></tr>
+<tr><td>ONNX Runtime / CUDA EP</td><td>A library that executes ONNX format models and an Execution Provider that performs calculations for NVIDIA GPUs within it. Use cuBLAS/cuDNN internally</td></tr>
+<tr><td>cuBLAS / cuDNN</td><td>A matrix calculation library for GPUs and a library for calculations for neural networks such as convolution provided by NVIDIA. DLL totaling over 1GB</td></tr>
+<tr><td>WDDM</td><td>Windows Display Driver Model. This is the framework in which Windows manages display drivers, and GPU memory allocation and evacuation and TDR determination are done here.</td></tr>
+<tr><td>Kernel (CUDA kernel)</td><td>A small program that runs in parallel on the GPU. The inference engine connects dozens of these to perform one inference.</td></tr>
+<tr><td>CUDA interop</td><td>A mechanism that registers the GPU memory managed by D3D11 so that it can be read and written from the CUDA side, and transfers ownership by map / unmap before and after use.</td></tr>
+<tr><td>thread / drawing thread</td><td>A flow of execution that runs in parallel within a program. Unity has a thread dedicated to drawing and loads instructions to D3D11 from there. Initialization and inference of native plugins run on separate threads</td></tr>
+</table>
+</div>
+<p>In Chapter 4 of this volume, I wrote about how I moved RVM inference from ONNX Runtime's <a href="https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html">CUDA EP</a> to a direct call to TensorRT. With that, the reasoning itself started to work. However, when I ran the full experience on my exhibition laptop, the screen above appeared again. Direct3D 11<sup class="fnref" id="fnref-d3d11-p"><a href="#fn-d3d11-p">[1]</a></sup>, Unity's drawing backend, says "The device has been reset" and crashes with the app. It's not an error in reasoning. This message means that the GPU itself has died and Windows has brought it back to life.</p>
+<p>This phenomenon is called TDR<sup class="fnref" id="fnref-tdr"><a href="#fn-tdr">[2]</a></sup> (Timeout Detection and Recovery). By default, Windows resets the GPU along with the driver if a task sent to the GPU does not respond for 2 seconds. From the perspective of the app that was reset, all textures and buffers it had up to that point will be invalidated, and Unity will terminate this as unrecoverable. Although the dialog says "this occurs when heavy drawing is done," it does not mean that the problem was actually heavy drawing. The cause of the GPU becoming silent for 2 seconds was elsewhere. This supplement is a record of how we chased down the cause of the problem while misunderstanding it, until we finally settled on a “structure that does not cause spikes.”</p>
+<div class="footnotes">
+<ol>
+<li id="fn-d3d11-p">Direct3D 11 (D3D11). One of the APIs for issuing drawing commands to the GPU on Windows. It is also used as Unity's drawing backend, and the output of the video decoder and the inference results of RVM are exchanged as memory (texture) on the GPU managed by Direct3D 11. Interoperability with CUDA refers to a mechanism that allows this Direct3D 11 side memory to be directly read and written from the CUDA side. In this appendix, "D3D11 timeline" refers to a single line in which Unity's drawing thread loads instructions to the GPU through this API, and the work on the CUDA side also interrupts this line and uses the same GPU.</li>
+<li id="fn-tdr"><a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/display/timeout-detection-and-recovery">Timeout Detection and Recovery</a>. This is a mechanism in the Windows display driver infrastructure (WDDM) that if processing sent to the GPU does not complete for a certain period of time (default 2 seconds), it assumes that the GPU has hung and resets the driver. This is a protection mechanism to prevent the screen from becoming stuck, but from the app's perspective, the D3D11 device suddenly goes into a "removed" state and loses all the resources it had on the GPU.</li>
+</ol>
+</div>
+</section>
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 01</span>
+<span class="chapter-stage">Wrong Suspect</span>
+</div>
+<h2>Mistaking the Cause of the Crash</h2>
+<p>The symptoms were characteristic. It always crashed right after switching from the tutorial to the main scene, right after the log showed "Native Init() returned status=0", that is, the initialization of pose estimation RTMPose was successful. In the exhibition build, RVM is already running on TensorRT. At this point, only RTMPose was reading the CUDA EP of ONNX Runtime. CUDA EP brings with it a group of DLLs, cuBLAS, a matrix calculation library, and cuDNN, a neural network calculation library, totaling over 1GB. Load it in the middle of the scene, while Unity's drawing thread is loading instructions for each frame onto the same GPU. When the GPU memory (VRAM) runs out, WDDM saves other resources to system memory, and while the save is being done, the rendering presentation (command to send the finished image to the headset) stops. If it exceeds 2 seconds, it becomes TDR. It made sense.</p>
+<p>The first thing I did was change the time. RTMPose initialization was made to wait at least 6 seconds after the scene was loaded, and ONNX Runtime's graph optimization level (the strength of optimization that groups and rearranges operations when loading a model; ALL is the maximum) was lowered from ALL to BASIC. This was because just creating a session (an object containing the loaded model and execution environment) was so heavy that it stopped the GPU's instruction sequence. In addition, the start of the experience has been separated from the completion of RTMPose preparation. First-person gameplay relies solely on Quest's hand tracking, so there was no reason to wait for pose estimation. This has reduced the number of crashes, but it hasn't disappeared. The spike position was only moved back for 6 seconds, but the spike itself was still there.</p>
+<p>The next thing I did was delete the CUDA EP that I thought was the culprit. Like RVM, I replaced RTMPose with a direct call to TensorRT (directly using the TensorRT SDK from my code without going through ONNX Runtime), and did not include cuBLAS, cuDNN, and onnxruntime_providers_cuda (the DLL for the CUDA EP itself) from the build. The verification script on the exhibition PC side was also made to fail if these DLLs remained in the plugin folder. I thought this solved the problem and tried it three times on the display PC, but it crashed twice.</p>
+<div class="diagram">
+<div class="diagram-title">Process of hunting down Spike's true identity</div>
+<div class="dg-col">
+<div class="dg-step hot"><b>Hypothesis 1: Loading DLL of ORT CUDA EP</b><small>If cuBLAS + cuDNN &gt;1GB is loaded into the scene, Present will stop due to VRAM evacuation → Delay Init for 6 seconds and set optimization level to BASIC. The falling position just moved</small></div>
+<div class="dg-down">↓ Remove the culprit itself</div>
+<div class="dg-step hot"><b>RTMPose directly calls TensorRT</b><small>Completely eliminate CUDA EP, cuBLAS, and cuDNN from the build. Still, 2 out of 3 TDR</small></div>
+<div class="dg-down">↓ What remains after the process of elimination</div>
+<div class="dg-step"><b>The real story: engine deserialization and initial kernel loading</b><small>The process of deploying the TensorRT plan to the GPU and the initial loading of the CUDA module was occurring on the live D3D11 timeline</small></div>
+<div class="dg-down">↓ Change where you wake up</div>
+<div class="dg-step gpu"><b>Prewarm on the intro screen (Chapter 2)</b><small>Complete everything while the drawing is light before the video arrives</small></div>
+</div>
+</div>
+<p>At this point, I finally found out that loading the DLL was not the culprit. What remained was the cost of “deserialization,” which involves deploying the TensorRT engine from a plan file to the GPU, and the cost of loading the small program (kernel) that runs on the GPU for the first time. Both are "heavy preparations for the first time only" and remain even if ONNX Runtime is deleted. Both do not disappear even if ONNX Runtime is deleted. I also discovered one aggravating factor that I had introduced myself. I kept the settings from when I was using CUDA EP and set the loading method for CUDA modules (a collection of kernels) to EAGER (read all at startup). This was true when cuDNN's exhaustive algorithm search was focused on initial inference, but for TensorRT, NVIDIA itself recommends LAZY<sup class="fnref" id="fnref-lazy"><a href="#fn-lazy">[1]</a></sup>. The plan even contains kernel variants that are never called with the actual input size. Loading all of that at the moment of initialization means that you are making things heavier at the exact moment you want to make them lighter. I changed it back to LAZY and explicitly set it in three places with code so that it would not be overwritten by the environment variable.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-lazy"><code>CUDA_MODULE_LOADING</code>. CUDA is a setting that determines when to load the GPU kernel embedded in an executable file to the GPU, EAGER loads all kernels at initialization, and LAZY loads only the kernel that is called for the first time on the spot. The default for CUDA 11.7 and later is LAZY, but since it can be overwritten with an environment variable, this implementation explicitly sets LAZY from the program side at startup. <a href="https://docs.nvidia.com/deeplearning/tensorrt/latest/performance/best-practices.html">TensorRT Best Practices</a> also recommends using LAZY to reduce initialization time and peak memory.</li>
+</ol>
+</div>
+</section>
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 02</span>
+<span class="chapter-stage">No Spike By Construction</span>
+</div>
+<h2>Designing Out the Spikes</h2>
+<p>There is a limit to the direction of lightening heavy processing. No matter how you do it, deserializing a plan occupies the GPU on the order of hundreds of milliseconds to seconds. Then choose a time to wake up. Until the participant presses START on the intro screen, the GPU is mostly idle just drawing the logo. During this time, create everything you will need later and keep it in a native plugin (DLL). When the scene starts and the footage comes, I take what I've kept instead of recreating it. This is the current structure, with a worker named <code>mppc_vision_prewarm</code> proceeding through four stages behind the intro screen. This is what "GPU vision warm-up n/4" says at the bottom left of the screen.</p>
+<div class="diagram">
+<div class="diagram-title">4 stages of prewarm (during the intro screen, before the video arrives)</div>
+<div class="dg-col">
+<div class="dg-step"><b>1. CUDA runtime and context</b><small>cudart (CUDA runtime DLL), CUDA primary context (working environment for using that GPU) on the same adapter (graphics board) as D3D11, nvinfer (TensorRT execution library)</small></div>
+<div class="dg-down">↓</div>
+<div class="dg-step"><b>2. RVM engine</b><small>Deserialization of plan, execution context (work area for one inference), bank of recursion states r1 to r4 (GPU memory for carrying over information from the previous frame to the next)</small></div>
+<div class="dg-down">↓</div>
+<div class="dg-step"><b>3. Deserialization of the RTMPose engine and D3D11 preprocessing resources</b><small>plan, SimCC output buffer (memory for the format in which RTMPose outputs joint positions), preprocessing compute shader (a small program that performs resizing and color conversion on the GPU), input buffer and its CUDA interoperability registration</small></div>
+<div class="dg-down">↓</div>
+<div class="dg-step gpu"><b>4. Warm up with zero input</b><small>Actually run both engines once to load the kernel, reset the RVM recursion state and park</small></div>
+</div>
+</div>
+<p>The difficult part was that both RVM and RTMPose were designed to know which D3D11 device (the handle of the GPU used by Unity) to use only after Unity handed them the first video texture. Before the video reaches you, you don't know who the other person is in the first place. Therefore, the prewarm is created first by reverse-looking up the device number on the CUDA side from the adapter on which the D3D11 device is installed, and when the actual initialization comes later, it is handed over after confirming that it is "the same device, same plan, and same input size." If even one of the conditions is not met, the product will not be handed over and will be made on the spot as usual. It was a design that was on the safe side, but this “if it doesn't fit, just silently remake it” later became a trap (Chapter 4).</p>
+<p>Another thing is that TDR did not stop just by prewarming the engine. This is because the process (<code>cudaGraphicsD3D11RegisterResource</code>) that registers the input memory to be passed to RTMPose (buffer with UAV <sup class="fnref" id="fnref-uav"><a href="#fn-uav">[1]</a></sup> created on the D3D11 side) so that it can be read from the CUDA side was still running on the GPU that was drawing. This registration is a heavy procedure that only occurs when D3D11 and CUDA shake hands for the first time, and creates the same kind of spike as deserialization. I cut out the construction of preprocessing resources into a function, created and registered them in the third stage of prewarming, and only received them during the initialization of the production.</p>
+<p>At the same time, we also changed the loop structure of the experience. Previously, RVM and RTMPose were shut down after each participant and reinitialized with the next participant. This creates a spike opportunity for each participant. Currently, the workers and engines stay resident for the life of the process, and only pause/resume when switching scenes. pause only stops accepting frames and does not touch any resources on the GPU (engine, buffers, CUDA registrations).</p>
+<p>After switching to this configuration, we conducted three verification sessions on the exhibition PC, including one session that ran more than 5,000 frames with RVM and pose estimation enabled, with zero exceptions (errors on the C# side), zero CUDA interoperability errors (map/registration failure), and zero TDR.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-uav">Unordered Access View. A "window" for compute shaders to read and write to buffers and textures at arbitrary positions in D3D11. RTMPose's preprocessing involves resizing, color converting, and normalizing the decoded NV12 video using a compute shader and writing it to this buffer, and the CUDA side reads the buffer as it is as input for inference.</li>
+</ol>
+</div>
+</section>
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 03</span>
+<span class="chapter-stage">D3D11 / CUDA Contention</span>
+</div>
+<h2>Coordinating Access Between D3D11 and CUDA</h2>
+<p>The night I tested Prewarm on my display PC, I discovered another type of problem. The symptoms are: “Sometimes it stops with a clean CUDA interop error, and sometimes it crashes at TDR without leaving a single line of error log.” Timing changes in results are a classic symptom of competition.</p>
+<p>The cause was that RTMPose was being initialized in a background thread and was touching the same D3D11 device as Unity's drawing thread without exclusive control. D3D11's device context (window for loading instructions) is not inherently thread-safe (it is not intended to be used by multiple threads at the same time). Unity has exclusive control over this window by enabling <code>ID3D11Multithread</code><sup class="fnref" id="fnref-multithread"><a href="#fn-multithread">[1]</a></sup>, but that lock is only protected by the "party that comes to pick it up." This lock was already applied to the ownership transfer (map/unmap, declaration that CUDA will use this memory now and return it after use), which is done every time inference is made. However, device inquiries and resource registration during initialization were not performed. While the drawing thread is presenting, another thread tries to register the resources of the same device without taking the lock. If you're lucky, you'll get an error; if you're unlucky, the driver will stop working with the GPU. The initialization side was also surrounded by the same lock, and the contents of the error were extracted as strings from <code>cudaGetErrorString</code> (a function that converts the CUDA error code into an explanation) and <code>GetDeviceRemovedReason</code> (a function that returns the reason why the D3D11 device disappeared), and the reason was returned to the Unity side in a readable form instead of a number such as "Status -2011".</p>
+<div class="spec">
+<div class="spec-title">Arrangements when D3D11 and CUDA use the same GPU (current)</div>
+<table class="data">
+<tr><th>scene</th><th>arrangement</th></tr>
+<tr><td>Initialization (device inquiry, resource registration)</td><td>Surround it with Enter/Leave of the same <code>ID3D11Multithread</code> as the drawing thread. previously defenseless</td></tr>
+<tr><td>Passing ownership of each inference</td><td>Locks only at the moment of map/unmap. The inference body (several milliseconds to tens of milliseconds) is run outside the lock. If you hold it all the way through the inference, the drawing thread's Present will stall for that amount of time, and if it accumulates it will cause a TDR.</td></tr>
+<tr><td>Mask texture writeback (drawing thread side)</td><td>If the lock is not released, skip that frame without waiting and continue using the previous mask (Chapter 4)</td></tr>
+<tr><td>Loading CUDA kernel</td><td>Explicitly set LAZY. Don't read everything at the moment of initialization</td></tr>
+<tr><td>plan file</td><td>Each combination of GPU and driver will be treated as an artifact and generated on the exhibition PC. not in repository</td></tr>
+<tr><td>Included runtime</td><td>nvinfer (TensorRT main body) only. If ONNX Runtime's CUDA EP, cuBLAS, and cuDNN DLLs remain in the plugin folder, the verification script will fail.</td></tr>
+<tr><td>Visualization of failure</td><td>In addition to the status code, return the CUDA/D3D11 reason string in <code>mppc_pose_get_last_error</code></td></tr>
+</table>
+</div>
+<p>What was once called "inconsistency between the driver and CUDA" can actually be divided into two parts. One is the problem of multiple threads touching the same device at the same time, and this is stopped by the above locking arrangement. Another problem is that the versions of the created environment and the used environment are different, and the TensorRT plan file is tied to the built GPU generation (architecture) and driver version. If you bring in a plan created on another PC, it may not work, but it will pretend to work and be slow or unstable. Therefore, the plan will be created using <code>prepare_rvm_tensorrt.ps1</code> and <code>prepare_rtmpose_tensorrt.ps1</code> on the exhibition PC, and will not be placed in the repository. As for the build itself, in the TensorRT version, CMake is used to disable ONNX Runtime's CUDA EP and its dependent DLLs from being bundled, and the verification script plays a state in which the old DLLs remain in the plugin folder. “Something that was supposed to be deleted remains and is read in another route” is the kind of confusion that I suspected when I failed 2 out of 3 times in Chapter 1, and I wanted to structurally prevent this from happening.</p>
+<div class="footnotes">
+<ol>
+<li id="fn-multithread"><a href="https://learn.microsoft.com/en-us/windows/win32/api/d3d10/nn-d3d10-id3d10multithread"><code>ID3D11Multithread</code></a>. An interface for serializing calls when using D3D11's immediate context from multiple threads. Enter the critical section at <code>Enter()</code> and <code>Leave()</code>. Unity enables this to protect its own drawing thread, but when a native plug-in touches the same device, it is not protected unless the plug-in also explicitly enters/leaves. CUDA <code>cudaGraphicsMapResources</code> does not automatically pass this protection, even though it uses D3D11 context internally.</li>
+</ol>
+</div>
+</section>
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 04</span>
+<span class="chapter-stage">Post-merge Review</span>
+</div>
+<h2>Fixing the Issues Found in Review</h2>
+<p>After incorporating the changes so far into the main line, the approximately 6,000 line differences were reviewed again. From here on, we'll get into the details of the code, so feel free to skip to Chapter 5. As a general rule, we decided to only make local fixes that require 1 to 4 lines before the exhibition, and to make any design changes, such as state machine integration or file splitting, after the exhibition. This is because tinkering with a working configuration is more dangerous than remaining bugs. List what you found that directly resonates with your experience.</p>
+<table class="data">
+<caption>Issues and fixes found in the review</caption>
+<tr><th>problem</th><th>what happens</th><th>correction</th></tr>
+<tr><td>The pre-warmed engine was never picked up.</td><td>The plan path was created on the prewarm side with Unity's <code>Path.Combine</code> (slash delimiter), and on the production side with <code>Path.GetFullPath</code> (backslash), and since the comparison was performed using an exact string match, there would always be a mismatch. Chapter 2's “If it doesn't work, silently re-create” was activated every time, and live deserialization remained.</td><td>Change the comparison to normalized form with <code>lexically_normal()</code> (2 lines)</td></tr>
+<tr><td>If only the masking process fails, the entire process will be locked.</td><td>If the RVM initialization fails, it goes to the "final shutdown" route (a route that should be taken only when the application is terminated, releases all GPU resources and is never initialized again), and after that, the start of stereo video is also refused (return value -6). Previously, it was "Video continues without mask"</td><td>Stops only the mask, returns the video to the continuing path, and outputs a dedicated log line when -6</td></tr>
+<tr><td>Once posture estimation is lost, it will never return.</td><td>Since pause was now used instead of shutdown when switching scenes, there was no chance to clear the failure flag.</td><td>Clear failure flag by reinitializing with the same settings (1 line)</td></tr>
+<tr><td>Discard prewarmed engine at pause during initialization</td><td>If the participant is calibrating quickly, there will be a pause during the warm-up of pose estimation, and the engine and CUDA registration that was just taken will be discarded and recreated in the next live performance.</td><td>When canceling, keep the engine running and only warm up again on the next resume.</td></tr>
+<tr><td>Drawing thread waits for mask initialization to complete</td><td>The process of writing the mask back to the texture retrieves the same lock (mutex) as the initialization, and stereo display stops during warm-up.</td><td>The drawing thread side uses a try-lock (a method of giving up without waiting if it cannot be obtained), and if it cannot be obtained, skips that frame and uses the previous mask.</td></tr>
+<tr><td>resume resets decoder unnecessarily</td><td>If a pause is entered before the GPU direct path (passing the decoder output to the D3D11 texture without going through the CPU) is enabled, it will break the healthy H.264 decoder and request keyframes again. Automatically restore settings that manually cut the GPU direct path</td><td>It has a separate flag to explicitly disable it on the host (Unity) side, and is not touched by resume. Even with a healthy resume, only IDR (a frame that can be decoded independently without depending on the previous frame) is requested from the camera side.</td></tr>
+</table>
+<p>The top item is, frankly, embarrassing. In Chapter 2, I wrote "TDR zero after 5000 frames," but when I verified that, the prewarm on the RVM side was actually in vain. The reason why TDR did not appear was because the lock and LAZY from Chapter 3, and the prewarm on the pose estimation side (coincidentally, both had the same path creation method) were in effect, and the RVM side was still deserializing live. A “remake if it doesn't work” design, which is taken on the safe side, does not show any symptoms even if it fails, so it hides such oversights. The fix is ​​two lines, but it took one human and three AI reviews to find it.</p>
+</section>
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Chapter 05</span>
+<span class="chapter-stage">Operational Guards</span>
+</div>
+<h2>Safeguards for Exhibition Operation</h2>
+<p>After eliminating anything that could be solved with code, I wrote in my runbook what I would do if something still happened on the day. All the information is in a specific line of Player.log.</p>
+<div class="spec">
+<div class="spec-title">On-the-day checks and judgment in the event of failure</div>
+<table class="data">
+<tr><th>things to check</th><th>standard</th></tr>
+<tr><td>Is prewarming really effective?</td><td>"GPU vision warm-up 4/4" in the intro. Log has <code>vision-prewarm-ready</code> followed by <code>segmentation-init</code> less than 300 ms</td></tr>
+<tr><td>Is the process not locked?</td><td>If <code>stereo start refused</code> or the return value <code>-6</code> is returned, restart the app. F6 (key for staff to reinitialize from Boot without quitting the app) does not return</td></tr>
+<tr><td>Conditions for switching to fallback build</td><td>TDR or <code>-6</code> is the second time on the same day. I have an alternative build without passthrough.</td></tr>
+<tr><td>Soak test before exhibition (long-term continuous operation test)</td><td>Run through 20 people, TDR zero, -6 zero, everyone reached RVM phase, posture estimation ready more than 19/20</td></tr>
+<tr><td>Installation destination</td><td>ASCII-only path. The error string on the native side is passed as UTF-8, so if it is a Japanese folder, the cause cannot be read.</td></tr>
+</table>
+</div>
+<p>The first item in particular is the very lesson of Chapter 4. Nothing changes on the screen whether prewarming is working or not. Even if it doesn't work, the experience will begin, and whether or not TDR will occur is a matter of probability. Therefore, determine the “evidence that it is working” in numbers and look at it the morning of the day.</p>
+</section>
+<section class="chapter">
+<div class="chapter-head">
+<span class="chapter-num">Epilogue</span>
+<span class="chapter-stage">Summary</span>
+</div>
+<h2>Afterword</h2>
+<p>Chapter 4 of the main story was about “moving inferences that don't work,” but this supplement is about “preventing inferences that are moving from taking over the GPU.” If I were to explain what I did in one line, I would simply say that I did not lighten heavy processing, but rather reselected the time and place where heavy processing occurs. Complete everything during the intro screen, when no one is looking, and only pick up during the scene. The moment D3D11 and CUDA touch the same device, they always pass the same lock. Create a plan on that PC. Verify the DLL that was supposed to be deleted.</p>
+<p>And I couldn't tell if that structure was really working even by looking at the moving screen. Perhaps the most important lesson of this addendum is that “it stopped falling” is not proof that it was “fixed.” If the pre-warm, which had been used in vain with a single path delimiter, had not been determined based on one line of the log, it would have continued to be vain until the day of the exhibition.</p>
+<div class="signature">
+<div>MetaPuppet — Software Implementation Notes / Stability</div>
+<div>Shimizu</div>
+</div>
+</section>
+</div>
+<div class="pagefoot">MetaPuppet</div>
+</article>
+</body>
+</html>

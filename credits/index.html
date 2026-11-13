@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="#020202" name="theme-color"/>
+<title>Credits — MetaPuppet</title>
+<meta content="Music, 3D assets, software, and acknowledgments for MetaPuppet." name="description"/>
+<meta content="website" property="og:type"/>
+<meta content="Credits — MetaPuppet" property="og:title"/>
+<meta content="Music, 3D assets, software, and acknowledgments for MetaPuppet." property="og:description"/>
+<meta content="https://meta-puppet.github.io/english/credits/" property="og:url"/>
+<meta content="https://meta-puppet.github.io/english/credits/mp_logo.png" property="og:image"/>
+<link href="mp_logo.png" rel="icon" type="image/png"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#020202;
+  --paper-raised:#0e0e10;
+  --ink:#f2f0ee;
+  --ink-soft:#9a9a9e;
+  --ink-faint:#6e6e73;
+  --rule:#232326;
+  --rule-strong:#35353a;
+  --accent:#e78fb3;
+  --accent2:#6fbfc4;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#faf9f6; --paper-raised:#f2f0eb; --ink:#171a1d; --ink-soft:#4b5459;
+    --ink-faint:#8b9296; --rule:#d8d5cd; --rule-strong:#b9b5aa;
+    --accent:#b8500e; --accent2:#14646b;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#faf9f6; --paper-raised:#f2f0eb; --ink:#171a1d; --ink-soft:#4b5459;
+  --ink-faint:#8b9296; --rule:#d8d5cd; --rule-strong:#b9b5aa;
+  --accent:#b8500e; --accent2:#14646b;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.9;
+}
+
+.page{max-width:720px; margin:0 auto; padding:70px 40px 90px;}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.site-header-inner{
+  max-width:720px;
+  margin:0 auto;
+  padding:16px 40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.site-header .brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  opacity:.95;
+  transition:opacity .15s ease;
+}
+.site-header .brand:hover{opacity:1;}
+.site-header img{
+  height:40px;
+  width:auto;
+  display:block;
+}
+.site-nav{
+  display:flex;
+  gap:22px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  letter-spacing:.04em;
+}
+.site-nav a{
+  color:var(--ink-faint);
+  text-decoration:none;
+}
+.site-nav a:hover{color:var(--accent);}
+.site-nav a[aria-current="page"]{color:var(--ink);}
+
+.kicker{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  text-transform:uppercase;
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:22px;
+}
+.kicker::before{content:""; width:26px; height:1px; background:var(--accent); display:inline-block;}
+
+h1{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-weight:800;
+  font-size:clamp(28px,5vw,40px);
+  margin:0 0 16px;
+  text-wrap:balance;
+}
+.sub{
+  font-size:15.5px;
+  color:var(--ink-soft);
+  margin:0 0 40px;
+}
+
+h2{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  font-size:19px;
+  font-weight:700;
+  border-top:1px solid var(--rule-strong);
+  padding-top:28px;
+  margin:44px 0 14px;
+}
+h2:first-of-type{border-top:none; padding-top:0;}
+
+p{margin:0 0 18px;}
+a{color:var(--accent2); text-decoration-color:var(--rule-strong); text-underline-offset:2px;}
+a:visited{color:var(--accent2);}
+a:hover{color:var(--accent);}
+
+.notice{
+  background:var(--paper-raised);
+  border-left:3px solid var(--accent);
+  padding:14px 18px;
+  margin:20px 0;
+  font-size:14px;
+  color:var(--ink-soft);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:18px 0 22px;
+  font-size:13.5px;
+}
+th{
+  text-align:left;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11px;
+  letter-spacing:.04em;
+  font-weight:500;
+  color:var(--ink-faint);
+  text-transform:uppercase;
+  border-bottom:1px solid var(--rule-strong);
+  padding:8px 14px 8px 0;
+}
+td{
+  border-bottom:1px solid var(--rule);
+  padding:10px 14px 10px 0;
+  vertical-align:top;
+}
+
+.back{
+  display:inline-block;
+  margin-top:50px;
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  color:var(--ink-faint);
+  text-decoration:none;
+  border-top:1px solid var(--rule);
+  padding-top:20px;
+  width:100%;
+}
+.back:hover{color:var(--accent2);}
+
+@media (max-width:600px){
+  .page{padding:50px 20px 70px;}
+  .site-header-inner{padding:12px 20px; gap:12px;}
+  .site-header img{height:32px;}
+  .site-nav{gap:10px 14px; font-size:11.5px; flex-wrap:wrap; justify-content:flex-end;}
+  table, table tbody{display:block; width:100%;}
+  table tr{display:block; padding:9px 0; border-bottom:1px solid var(--rule);}
+  table tr:first-child:has(th), table tr:has(th){display:none;}
+  table th, table td{display:block; padding:0; border:0; white-space:normal;}
+  table td:first-child{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+  table td:nth-child(2){font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  table td.num{font-size:13.5px; color:var(--accent2); font-weight:700;}
+  table td.label{font-weight:700;}
+  .spec{padding:16px 16px 4px;}
+}
+
+@media print{
+  @page{size:A4; margin:16mm 15mm 18mm;}
+  :root, :root[data-theme="dark"]{
+    --paper:#ffffff; --paper-raised:#f3f1ec; --ink:#171a1d; --ink-soft:#4b5459; --ink-faint:#7d848a;
+    --rule:#d8d5cd; --rule-strong:#b9b5aa; --accent:#b8500e; --accent-soft:#f1d9c4; --accent2:#14646b; --accent2-soft:#cfe3e4;
+    --code-bg:#f3f1ec; --code-ink:#171a1d; --code-accent:#b8500e; --code-accent2:#14646b;
+    --bg:#ffffff; --bg-raised:#f3f1ec;
+  }
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+  html,body{background:#fff !important; color:var(--ink);}
+  body{font-size:10.5pt; line-height:1.75;}
+  .site-header, .pagefoot, .back{display:none !important;}
+  .page, .cover, .pipeline, .toc{max-width:none; padding-left:0; padding-right:0;}
+  .cover{padding-top:6mm; padding-bottom:8mm;}
+  .toc{background:transparent; border-bottom:1px solid var(--rule-strong);}
+  .pipeline{overflow:visible; flex-wrap:wrap; background:var(--paper-raised);}
+  .chapter{break-before:auto; page-break-before:auto; padding-top:26px; margin-top:6px;}
+  h2, h3, .chapter-head, .spec-title, .diagram-title, .code-label{break-after:avoid; page-break-after:avoid;}
+  p, li{orphans:3; widows:3;}
+  .embed, .diagram, .spec, .notice, table, pre, .code-wrap, .footnotes, .signature, .team-row{break-inside:avoid; page-break-inside:avoid;}
+  .embed img{max-height:110mm; width:auto; max-width:100%; margin:0 auto;}
+  .embed .seq img{max-height:70mm;}
+  .embed:has(iframe), .embed:has(video), .embed:has(audio), .embed:has(.twitter-tweet), .embed:has(blockquote){display:none !important;}
+  iframe, video, audio{display:none !important;}
+  pre{background:var(--code-bg); color:var(--code-ink); border:1px solid var(--rule-strong); white-space:pre-wrap; word-break:break-all;}
+  code{background:var(--paper-raised); border-color:var(--rule);}
+  .spec, .notice, .diagram{background:var(--paper-raised);}
+  a{color:var(--accent2); text-decoration:none;}
+  .footnotes a, .chapter a, .cover a{color:var(--accent2);}
+  sup.fnref a{color:var(--accent);}
+  table{display:table;} table tbody{display:table-row-group;} table tr{display:table-row;} table th, table td{display:table-cell;}
+  table td:first-child{font-size:inherit; font-weight:inherit; color:inherit;}
+  table td:nth-child(2){font-size:inherit; color:inherit;}
+}
+</style>
+<link href="https://meta-puppet.github.io/english/credits/" rel="canonical"/><meta content="en_US" property="og:locale"/></head>
+<body>
+<div class="site-header">
+<div class="site-header-inner">
+<a aria-label="MetaPuppet home" class="brand" href="../"><img alt="MetaPuppet" src="mp_logo.png"/></a>
+<nav aria-label="Project navigation" class="site-nav">
+<a href="../genesis/">Genesis</a>
+<a href="../pipeline/">Pipeline</a>
+<a href="../pipeline/stability/">Stability</a>
+<a href="../control/">Control</a>
+<a href="../experience/">Experience</a>
+<a aria-current="page" href="./">Credits</a>
+</nav>
+</div>
+</div>
+<div class="page">
+<div class="kicker">MetaPuppet</div>
+<h1>Credits</h1>
+<h2>Music</h2>
+<p>The music played at the venue is all original music created by <a href="https://suno.com/">Suno AI</a>, and no third party music is used. In creating this song, I referred to the texture of <a href="https://en.wikipedia.org/wiki/Kangding_Ray">Kangding Ray</a>'s song and the sound implementation of <a href="https://www.platinumgames.com/official-blog/article/9581">NieR:Automata</a> (localization that keeps the sound in place, and the use of deterioration filters to create an uneasy feeling). A preview of the final version is posted in <a href="../experience/">Experience Implementation Record</a>.</p>
+<table>
+<tr><th>songs</th><th>Usage scene</th></tr>
+<tr><td>Seren_intro</td><td>Logo display, start waiting, tutorial</td></tr>
+<tr><td>Nocturnal Resolve</td><td>First-person rhythm scene, puppet manipulation scene, video synthesis, result display (stretched from 132BPM to 120BPM)</td></tr>
+<tr><td>Dawn After the Night</td><td>At the end of the exhibition loop</td></tr>
+</table>
+<h2>3D Model Assets</h2>
+<p>For some of the characters and backgrounds, <a href="https://assetstore.unity.com/packages/3d/environments/polygon-prototype-pack-art-by-synty-137126">POLYGON Prototype Pack (Art by Synty)</a> is used via the Unity Asset Store.</p>
+<p>As models for statues, the shapes of the heads of the Winged Victory of Samothrace, Laocoön, Apollo Belvedere, Michelangelo's David (head), and Put (Angel Child) are used. All of these are 3D models that are reproductions and scans of famous sculptures, and are publicly available under CC0 (equivalent to public domain) or CC-BY (free to use as long as they are indicated).</p>
+<table>
+<tr><th>model</th><th>source</th></tr>
+<tr><td>Apollo Belvedere</td><td><a href="https://sketchfab.com/3d-models/apollo-belvedere-fe5c0cffdc2a4f3985872212c692af0c">Sketchfab</a></td></tr>
+<tr><td>Victory of Samothrace</td><td><a href="https://skfb.ly/oyn7n">Sketchfab</a></td></tr>
+<tr><td>laocoon statue</td><td><a href="https://sketchfab.com/3d-models/laocoon-group-4e253a98bfc842cabfe7610c38daa7ab">Sketchfab</a></td></tr>
+<tr><td>David statue (head)</td><td><a href="https://www.myminifactory.com/object/3d-print-michelangelo-s-david-in-florence-italy-2052">MyMiniFactory</a></td></tr>
+<tr><td>Head of Puto (angel child)</td><td><a href="https://sketchfab.com/3d-models/putto-head-a4d8226a7bb24dffa1a8cabff861068a">Sketchfab</a></td></tr>
+</table>
+<h2>Software Libraries</h2>
+<table>
+<tr><th>name</th><th>Purpose</th></tr>
+<tr><td><a href="https://github.com/PeterL1n/RobustVideoMatting">Robust Video Matting</a></td><td>Masking process that cuts out only people from the video</td></tr>
+<tr><td><a href="https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose">RTMPose</a></td><td>Estimation of body joint positions</td></tr>
+<tr><td><a href="https://onnxruntime.ai/">ONNX Runtime</a></td><td>Inference engine (MIT license, Microsoft)</td></tr>
+<tr><td><a href="https://www.videolan.org/developers/x264.html">x264</a></td><td>video encoding</td></tr>
+<tr><td><a href="https://github.com/CristianQiu/Unity-URP-Volumetric-Light">URP Volumetric Fog/Light</a></td><td>Volumetric fog for Unity (by CristianQiu)</td></tr>
+<tr><td><a href="https://threejs.org/">three.js</a></td><td>WebGL drawing for this site</td></tr>
+</table>
+<h2>Development Support</h2>
+<p>The implementation of this work is supported by the AI ​​coding agents <a href="https://openai.com/codex/">Codex</a> and <a href="https://claude.com/claude-code">Claude Code</a>. Thank you to Codex-kun and Claude Code-kun for listening to our many impossible requests and supporting implementation to the fullest.</p>
+<h2>Special Thanks</h2>
+<p>We would like to thank Mr. Keigo Matsumoto of <a href="https://beyondrealitylab.org/">Beyond Reality Lab</a> for much advice and support throughout the production. thank you very much.</p>
+</div>
+</body>
+</html>
